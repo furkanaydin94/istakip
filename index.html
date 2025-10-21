@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İş Takip Sistemi - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .kanban-board {
+            display: grid;
+            grid-auto-columns: minmax(320px, 1fr);
+            grid-auto-flow: column;
+            gap: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+
+        .kanban-column {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            min-height: 600px;
+        }
+
+        .task-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .task-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .priority-critical { border-left: 4px solid #ef4444; }
+        .priority-high { border-left: 4px solid #f97316; }
+        .priority-normal { border-left: 4px solid #3b82f6; }
+        .priority-low { border-left: 4px solid #22c55e; }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .badge-high { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
+        .badge-normal { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+        .badge-low { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .tab-btn {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 35px;
+            bottom: -20px;
+            width: 2px;
+            background: linear-gradient(180deg, #3b82f6 0%, rgba(59, 130, 246, 0) 100%);
+        }
+
+        .timeline-item:last-child::before {
+            display: none;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .filter-btn {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .view-btn {
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .document-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .document-card:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateX(4px);
+        }
+
+        .info-row {
+            background: rgba(30, 41, 59, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        .loading-spinner {
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center z-[100]">
+        <div class="loading-spinner"></div>
+        <p class="mt-6 text-lg font-semibold text-white animate-pulse">Veriler yükleniyor...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 glass shadow-2xl">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <i class="ph-bold ph-kanban text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold gradient-text">İş Takip Sistemi</h1>
+                        <p class="text-xs text-slate-400">Profesyonel Görev Yönetimi</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="Görevlerde ara..." 
+                            class="w-80 bg-slate-800/50 border border-slate-700 text-white rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        >
+                    </div>
+                    <button class="glass px-4 py-3 rounded-xl hover:bg-slate-700/50 transition">
+                        <i class="ph-bold ph-bell text-xl text-slate-300"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div id="stats-bar" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                <!-- Stats will be rendered here -->
+            </div>
+
+            <!-- Filters & Views -->
+            <div class="flex items-center justify-between mt-6 flex-wrap gap-4">
+                <div class="flex gap-2">
+                    <button id="view-kanban" class="view-btn active px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
+                        <i class="ph-bold ph-kanban text-lg"></i> Pano
+                    </button>
+                    <button id="view-list" class="view-btn filter-btn px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
+                        <i class="ph-bold ph-list-bullets text-lg"></i> Liste
+                    </button>
+                    <button id="view-person" class="view-btn filter-btn px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
+                        <i class="ph-bold ph-users-three text-lg"></i> Kişiler
+                    </button>
+                    <button id="view-docs" class="view-btn filter-btn px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
+                        <i class="ph-bold ph-files text-lg"></i> Belgeler
+                    </button>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <select id="filter-person" class="filter-btn px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"></select>
+                    <select id="filter-department" class="filter-btn px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"></select>
+                    <select id="filter-priority" class="filter-btn px-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white">
+                        <option value="">Tüm Öncelikler</option>
+                        <option value="Kritik">🔴 Kritik</option>
+                        <option value="Yüksek">🟠 Yüksek</option>
+                        <option value="Normal">🟡 Normal</option>
+                        <option value="Düşük">🔵 Düşük</option>
+                    </select>
+                    <button id="clear-filters" class="filter-btn px-4 py-2.5 rounded-xl text-sm hover:text-white transition flex items-center gap-2 text-slate-400">
+                        <i class="ph-bold ph-x-circle"></i> Temizle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="container mx-auto px-6 py-8">
+        <!-- Content will be rendered here -->
+    </main>
+
+    <!-- Task Detail Modal -->
+    <div id="task-modal" class="fixed inset-0 modal-backdrop hidden items-center justify-center z-50 p-4">
+        <div class="modal-content glass rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start p-6 border-b border-slate-700/50">
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h2 id="modal-title" class="text-3xl font-bold text-white"></h2>
+                        <span id="modal-priority-badge" class="badge"></span>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <i class="ph ph-hash"></i>
+                            <span id="modal-id" class="font-mono"></span>
+                        </span>
+                        <span id="modal-status-badge" class="badge"></span>
+                    </div>
+                </div>
+                <button id="close-modal" class="text-slate-400 hover:text-white hover:bg-slate-700 rounded-xl p-2 transition">
+                    <i class="ph-bold ph-x text-2xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Task Info -->
+                    <div class="lg:col-span-1 space-y-4">
+                        <div class="glass rounded-xl p-5">
+                            <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-blue-400">
+                                <i class="ph-bold ph-info"></i> Görev Detayları
+                            </h3>
+                            <div id="modal-details" class="space-y-3">
+                                <!-- Details will be rendered here -->
+                            </div>
+                        </div>
+
+                        <div class="glass rounded-xl p-5">
+                            <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-purple-400">
+                                <i class="ph-bold ph-users"></i> Ekip
+                            </h3>
+                            <div id="modal-team" class="space-y-3">
+                                <!-- Team will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Tabs Content -->
+                    <div class="lg:col-span-2">
+                        <div class="glass rounded-xl overflow-hidden">
+                            <div class="border-b border-slate-700/50 px-6 pt-4">
+                                <nav id="modal-tabs" class="flex gap-6">
+                                    <button data-tab="updates" class="tab-btn active pb-4 px-1 font-semibold text-sm text-white">
+                                        <i class="ph-bold ph-chat-text"></i> Güncelleme Kayıtları
+                                    </button>
+                                    <button data-tab="notes" class="tab-btn pb-4 px-1 font-semibold text-sm text-slate-400 hover:text-white">
+                                        <i class="ph-bold ph-note"></i> İşlem Notları
+                                    </button>
+                                    <button data-tab="docs" class="tab-btn pb-4 px-1 font-semibold text-sm text-slate-400 hover:text-white">
+                                        <i class="ph-bold ph-files"></i> Belgeler
+                                    </button>
+                                </nav>
+                            </div>
+                            <div id="tab-content" class="p-6">
+                                <!-- Tab content will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const SHEET_URLS = {
+                gorevler: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=0&single=true&output=tsv",
+                guncelleme: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=1133116779&single=true&output=tsv",
+                belgeler: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=248304037&single=true&output=tsv",
+                islemKayitlari: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=1417601390&single=true&output=tsv",
+                kayitZinciri: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=337730490&single=true&output=tsv"
+            };
+
+            let tasks = [];
+            let updates = [];
+            let notes = [];
+            let documents = [];
+            let kayitZinciri = [];
+            let people = new Set();
+            let departments = new Set();
+            let currentView = 'kanban';
+            let currentTab = 'updates';
+
+            // DOM Elements
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const mainContent = document.getElementById('main-content');
+            const statsBar = document.getElementById('stats-bar');
+            const searchInput = document.getElementById('search-input');
+            const filterPerson = document.getElementById('filter-person');
+            const filterDepartment = document.getElementById('filter-department');
+            const filterPriority = document.getElementById('filter-priority');
+            const clearFiltersBtn = document.getElementById('clear-filters');
+            const taskModal = document.getElementById('task-modal');
+            const closeModalBtn = document.getElementById('close-modal');
+
+            // --- DATA FETCHING & PROCESSING ---
+            async function fetchData() {
+                loadingOverlay.classList.remove('hidden');
+                try {
+                    const promises = Object.values(SHEET_URLS).map(url => 
+                        new Promise((resolve, reject) => {
+                            Papa.parse(url, {
+                                download: true,
+                                header: true,
+                                delimiter: '\t',
+                                skipEmptyLines: true,
+                                complete: results => resolve(results.data),
+                                error: err => reject(err)
+                            });
+                        })
+                    );
+
+                    const [gorevlerData, guncellemeData, belgelerData, islemKayitlariData, kayitZinciriData] = await Promise.all(promises);
+                    
+                    updates = guncellemeData;
+                    notes = islemKayitlariData;
+                    documents = belgelerData;
+                    kayitZinciri = kayitZinciriData;
+                    tasks = gorevlerData;
+                    
+                    processData();
+                    setupFilters();
+                    renderStats();
+                    render();
+
+                } catch (error) {
+                    console.error('Data fetch error:', error);
+                    loadingOverlay.innerHTML = '<p class="text-red-400 font-semibold">Veri yüklenemedi. Lütfen URL\'leri kontrol edin.</p>';
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }
+
+            function processData() {
+                const messageToJobMap = new Map();
+                kayitZinciri.forEach(row => {
+                    if (row['İş ID'] && row['Mesaj ID']) {
+                        messageToJobMap.set(row['Mesaj ID'], row['İş ID']);
+                    }
+                });
+                
+                const linkRow = (row) => {
+                    if (!row['İş ID']) {
+                        let jobId = messageToJobMap.get(row['Mesaj ID']) || messageToJobMap.get(row['Yanıtlanan Mesaj ID']);
+                        if(jobId) row['İş ID'] = jobId;
+                    }
+                    return row;
+                };
+
+                documents.forEach(linkRow);
+                notes.forEach(linkRow);
+
+                people.clear();
+                departments.clear();
+                tasks.forEach(task => {
+                    if (task.Sorumlular) {
+                        task.Sorumlular.split(',').forEach(p => people.add(p.trim()));
+                    }
+                    if (task['İlgili Departman(lar)']) {
+                        task['İlgili Departman(lar)'].split(',').forEach(d => departments.add(d.trim()));
+                    }
+                });
+            }
+
+            function setupFilters() {
+                const peopleArray = Array.from(people).sort();
+                const deptArray = Array.from(departments).sort();
+
+                filterPerson.innerHTML = '<option value="">Tüm Sorumlular</option>' + 
+                    peopleArray.map(p => `<option value="${p}">${p}</option>`).join('');
+                
+                filterDepartment.innerHTML = '<option value="">Tüm Departmanlar</option>' + 
+                    deptArray.map(d => `<option value="${d}">${d}</option>`).join('');
+            }
+
+            function applyFilters() {
+                const search = searchInput.value.toLowerCase();
+                const person = filterPerson.value;
+                const dept = filterDepartment.value;
+                const priority = filterPriority.value;
+
+                return tasks.filter(task => {
+                    const searchMatch = !search || Object.values(task).some(v => 
+                        String(v).toLowerCase().includes(search)
+                    );
+                    const personMatch = !person || (task.Sorumlular && task.Sorumlular.includes(person));
+                    const deptMatch = !dept || (task['İlgili Departman(lar)'] && task['İlgili Departman(lar)'].includes(dept));
+                    const priorityMatch = !priority || (task.Öncelik && task.Öncelik.includes(priority));
+
+                    return searchMatch && personMatch && deptMatch && priorityMatch;
+                });
+            }
+            
+            function renderStats() {
+                const total = tasks.length;
+                const byStatus = {};
+                tasks.forEach(task => {
+                    const status = task['Mevcut Durum'] || 'Bilinmiyor';
+                    byStatus[status] = (byStatus[status] || 0) + 1;
+                });
+
+                const statuses = Object.keys(byStatus).slice(0, 4);
+                const colors = ['from-blue-500 to-blue-600', 'from-purple-500 to-purple-600', 'from-green-500 to-green-600', 'from-orange-500 to-orange-600'];
+
+                statsBar.innerHTML = statuses.map((status, i) => `
+                    <div class="stat-card rounded-xl p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 rounded-lg bg-gradient-to-br ${colors[i % 4]} flex items-center justify-center">
+                                <i class="ph-bold ph-chart-line text-2xl text-white"></i>
+                            </div>
+                            <span class="text-3xl font-bold text-white">${byStatus[status]}</span>
+                        </div>
+                        <h3 class="text-slate-400 text-sm font-medium">${status}</h3>
+                    </div>
+                `).join('');
+            }
+
+
+            function getPriorityClass(priority) {
+                if (!priority) return 'border-l-4 border-slate-600';
+                if (priority.includes('Kritik')) return 'priority-critical';
+                if (priority.includes('Yüksek')) return 'priority-high';
+                if (priority.includes('Normal')) return 'priority-normal';
+                if (priority.includes('Düşük')) return 'priority-low';
+                return 'border-l-4 border-slate-600';
+            }
+
+            function getPriorityBadge(priority) {
+                if (!priority) return '';
+                if (priority.includes('Kritik')) return '<span class="badge badge-critical">🔴 Kritik</span>';
+                if (priority.includes('Yüksek')) return '<span class="badge badge-high">🟠 Yüksek</span>';
+                if (priority.includes('Normal')) return '<span class="badge badge-normal">🟡 Normal</span>';
+                if (priority.includes('Düşük')) return '<span class="badge badge-low">🔵 Düşük</span>';
+                return '';
+            }
+            
+            function createTaskCard(task) {
+                const assigned = task.Sorumlular ? task.Sorumlular.split(',').map(p => p.trim()) : [];
+                const updatesCount = updates.filter(u => u['İş ID'] === task['İş ID']).length;
+                const docsCount = documents.filter(d => d['İş ID'] === task['İş ID']).length;
+                const notesCount = notes.filter(n => n['İş ID'] === task['İş ID']).length;
+
+                return `
+                    <div class="task-card p-5 ${getPriorityClass(task.Öncelik)} fade-in" data-task-id="${task['İş ID']}">
+                        <div class="flex items-start justify-between mb-3">
+                            <h3 class="font-bold text-lg text-white flex-1 line-clamp-2">${task.Başlık}</h3>
+                            ${getPriorityBadge(task.Öncelik)}
+                        </div>
+                        
+                        <p class="text-sm text-slate-400 mb-4 line-clamp-3">${task['Görev İçeriği'] || 'Açıklama yok'}</p>
+                        
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="badge bg-blue-500/20 text-blue-300">
+                                <i class="ph ph-circle-wavy-check"></i>
+                                ${task['Mevcut Durum']}
+                            </span>
+                            ${task['Son Teslim Tarihi'] ? `
+                                <span class="badge bg-orange-500/20 text-orange-300">
+                                    <i class="ph ph-calendar"></i>
+                                    ${task['Son Teslim Tarihi']}
+                                </span>
+                            ` : ''}
+                        </div>
+
+                        ${task['Talep Eden Makam'] ? `
+                            <div class="text-xs text-slate-500 mb-3 flex items-center gap-2">
+                                <i class="ph ph-buildings"></i>
+                                ${task['Talep Eden Makam']}
+                            </div>
+                        ` : ''}
+
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                            <div class="flex items-center gap-3 text-xs text-slate-500">
+                                <span class="flex items-center gap-1">
+                                    <i class="ph ph-chat-text"></i>
+                                    ${updatesCount}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <i class="ph ph-note"></i>
+                                    ${notesCount}
+                                </span>
+                                <span class="flex items-center gap-1">
+                                    <i class="ph ph-file"></i>
+                                    ${docsCount}
+                                </span>
+                            </div>
+                            <div class="flex items-center -space-x-2">
+                                ${assigned.slice(0, 3).map(p => `
+                                    <div class="avatar" title="${p}">${p.charAt(0).toUpperCase()}</div>
+                                `).join('')}
+                                ${assigned.length > 3 ? `
+                                    <div class="avatar bg-slate-600">+${assigned.length - 3}</div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function render() {
+                const filtered = applyFilters();
+                mainContent.innerHTML = '';
+
+                if (currentView === 'kanban') {
+                    renderKanban(filtered);
+                } else if (currentView === 'list') {
+                    renderList(filtered);
+                } else if (currentView === 'person') {
+                    renderPerson(filtered);
+                } else if(currentView === 'docs'){
+                    renderDocsView(filtered);
+                }
+            }
+
+            function renderKanban(filtered) {
+                const statuses = [...new Set(tasks.map(t => t['Mevcut Durum']))];
+                mainContent.className = 'container mx-auto px-6 py-8';
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'kanban-board';
+                
+                statuses.forEach(status => {
+                    const tasksInStatus = filtered.filter(t => t['Mevcut Durum'] === status);
+                    const col = document.createElement('div');
+                    col.className = 'kanban-column p-5';
+                    col.innerHTML = `
+                        <div class="flex items-center justify-between mb-5 sticky top-0 bg-slate-800/90 backdrop-blur-sm py-2 rounded-lg px-2">
+                            <h2 class="text-xl font-bold text-white">${status}</h2>
+                            <span class="badge bg-slate-700 text-slate-300">${tasksInStatus.length}</span>
+                        </div>
+                        <div class="space-y-4">
+                            ${tasksInStatus.map(createTaskCard).join('') || 
+                                '<p class="text-slate-500 text-center py-8">Bu durumda görev yok</p>'}
+                        </div>
+                    `;
+                    wrapper.appendChild(col);
+                });
+                
+                mainContent.appendChild(wrapper);
+            }
+            
+            function renderDocsView(filteredTasks){
+                const docsByTask = {};
+                const filteredTaskIds = new Set(filteredTasks.map(t => t['İş ID']));
+
+                documents.forEach(doc => {
+                    if (doc['İş ID'] && filteredTaskIds.has(doc['İş ID'])) {
+                        if (!docsByTask[doc['İş ID']]) {
+                            const task = tasks.find(t => t['İş ID'] === doc['İş ID']);
+                            docsByTask[doc['İş ID']] = {
+                                title: task ? task.Başlık : doc['İş ID'],
+                                docs: []
+                            };
+                        }
+                        docsByTask[doc['İş ID']].docs.push(doc);
+                    }
+                });
+                
+                mainContent.innerHTML = `
+                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${Object.keys(docsByTask).map(taskId => `
+                            <div class="glass rounded-2xl p-6">
+                                <h2 class="text-xl font-bold text-white mb-4">${docsByTask[taskId].title}</h2>
+                                <div class="space-y-3">
+                                    ${docsByTask[taskId].docs.map(doc => `
+                                        <a href="${doc.Link}" target="_blank" rel="noopener noreferrer" class="document-card p-4 block group">
+                                            <div class="flex items-center gap-3">
+                                                <i class="ph ph-file-arrow-down text-2xl text-blue-400"></i>
+                                                <div class="flex-1 min-w-0">
+                                                    <h4 class="font-semibold text-white truncate group-hover:text-blue-400 transition">${doc.Başlık || 'Belge'}</h4>
+                                                    <p class="text-xs text-slate-500">${doc.Gönderen || 'Bilinmiyor'} tarafından</p>
+                                                </div>
+                                                <i class="ph-bold ph-arrow-square-out text-slate-500 group-hover:text-blue-400 transition"></i>
+                                            </div>
+                                        </a>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            function renderList(filtered) {
+                mainContent.innerHTML = `
+                    <div class="glass rounded-2xl overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-slate-800/50">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Başlık</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Sorumlular</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Durum</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Öncelik</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Departman</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Son Teslim</th>
+                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-700/50">
+                                    ${filtered.map(task => `
+                                        <tr class="hover:bg-slate-800/50 transition cursor-pointer" data-task-id="${task['İş ID']}">
+                                            <td class="px-6 py-4">
+                                                <div class="font-semibold text-white mb-1">${task.Başlık}</div>
+                                                <div class="text-xs text-slate-500">${task['İş ID']}</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="flex items-center -space-x-2">
+                                                    ${(task.Sorumlular ? task.Sorumlular.split(',').slice(0, 2).map(p => `
+                                                        <div class="avatar w-8 h-8 text-xs" title="${p.trim()}">${p.trim().charAt(0).toUpperCase()}</div>
+                                                    `).join('') : '<span class="text-slate-500">-</span>')}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="badge bg-blue-500/20 text-blue-300">${task['Mevcut Durum']}</span>
+                                            </td>
+                                            <td class="px-6 py-4">${getPriorityBadge(task.Öncelik) || '<span class="text-slate-500">-</span>'}</td>
+                                            <td class="px-6 py-4 text-slate-300 text-sm">${task['İlgili Departman(lar)'] || '-'}</td>
+                                            <td class="px-6 py-4 text-slate-300 text-sm">${task['Son Teslim Tarihi'] || '-'}</td>
+                                            <td class="px-6 py-4">
+                                                <button class="filter-btn px-3 py-1.5 rounded-lg text-xs hover:text-white">
+                                                    <i class="ph ph-eye"></i> Detay
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function renderPerson(filtered) {
+                const tasksByPerson = {};
+                filtered.forEach(task => {
+                    if (task.Sorumlular) {
+                        task.Sorumlular.split(',').forEach(p => {
+                            const name = p.trim();
+                            if (!tasksByPerson[name]) tasksByPerson[name] = [];
+                            tasksByPerson[name].push(task);
+                        });
+                    }
+                });
+
+                mainContent.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${Object.keys(tasksByPerson).sort().map(person => `
+                            <div class="glass rounded-2xl p-6">
+                                <div class="flex items-center gap-4 mb-6">
+                                    <div class="avatar w-16 h-16 text-2xl">${person.charAt(0).toUpperCase()}</div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-white">${person}</h3>
+                                        <p class="text-sm text-slate-400">${tasksByPerson[person].length} görev</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                                    ${tasksByPerson[person].map(createTaskCard).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            function openModal(taskId) {
+                const task = tasks.find(t => t['İş ID'] === taskId);
+                if (!task) return;
+
+                document.getElementById('modal-title').textContent = task.Başlık;
+                document.getElementById('modal-id').textContent = task['İş ID'];
+                document.getElementById('modal-priority-badge').innerHTML = getPriorityBadge(task.Öncelik);
+                document.getElementById('modal-status-badge').innerHTML = `
+                    <span class="badge bg-blue-500/20 text-blue-300">
+                        <i class="ph ph-circle-wavy-check"></i>
+                        ${task['Mevcut Durum']}
+                    </span>
+                `;
+
+                // Render details
+                const details = [
+                    { label: 'Görev İçeriği', value: task['Görev İçeriği'], icon: 'ph-text-align-left', full: true },
+                    { label: 'Talep Eden Makam', value: task['Talep Eden Makam'], icon: 'ph-buildings' },
+                    { label: 'Kaynak / Harici Paydaş', value: task['Kaynak / Harici Paydaş'], icon: 'ph-handshake' },
+                    { label: 'İlgili Departman(lar)', value: task['İlgili Departman(lar)'], icon: 'ph-users-three' },
+                    { label: 'Tetiklenme Türü', value: task['Tetiklenme Türü'], icon: 'ph-lightning' },
+                    { label: 'Görev Tipi', value: task['Görev Tipi'], icon: 'ph-tag' },
+                    { label: 'Aktif Onay Adımı', value: task['Aktif Onay Adımı'], icon: 'ph-check-circle' },
+                    { label: 'Son Teslim Tarihi', value: task['Son Teslim Tarihi'], icon: 'ph-calendar-check' },
+                    { label: 'Oluşturulma Tarihi', value: task['Oluşturulma Tarihi'] ? new Date(task['Oluşturulma Tarihi']).toLocaleString('tr-TR') : '', icon: 'ph-clock' },
+                ];
+
+                document.getElementById('modal-details').innerHTML = details.filter(d => d.value).map(d => `
+                    <div class="info-row ${d.full ? 'col-span-2' : ''}">
+                        <div class="flex items-start gap-3">
+                            <i class="ph-bold ${d.icon} text-lg text-blue-400 mt-0.5"></i>
+                            <div class="flex-1">
+                                <div class="text-xs text-slate-500 font-medium mb-1">${d.label}</div>
+                                <div class="text-white text-sm ${d.full ? '' : 'font-semibold'}">${d.value}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Render team
+                const team = [];
+                if (task.Atayan) team.push({ role: 'Atayan', name: task.Atayan });
+                if (task.Sorumlular) {
+                    task.Sorumlular.split(',').forEach(p => {
+                        team.push({ role: 'Sorumlu', name: p.trim() });
+                    });
+                }
+
+                document.getElementById('modal-team').innerHTML = team.map(t => `
+                    <div class="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
+                        <div class="avatar">${t.name.charAt(0).toUpperCase()}</div>
+                        <div>
+                            <div class="text-white font-semibold text-sm">${t.name}</div>
+                            <div class="text-xs text-slate-500">${t.role}</div>
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-slate-500 text-sm">Ekip bilgisi yok</p>';
+
+                // Render first tab
+                renderTab('updates', taskId);
+
+                taskModal.classList.remove('hidden');
+                taskModal.classList.add('flex');
+            }
+
+            function renderTab(type, taskId) {
+                const content = document.getElementById('tab-content');
+                const tabs = document.querySelectorAll('.tab-btn');
+                
+                tabs.forEach(tab => {
+                    tab.classList.remove('active', 'text-white');
+                    tab.classList.add('text-slate-400');
+                    if (tab.dataset.tab === type) {
+                        tab.classList.add('active', 'text-white');
+                        tab.classList.remove('text-slate-400');
+                    }
+                });
+
+                if (type === 'updates') {
+                    const taskUpdates = updates.filter(u => u['İş ID'] === taskId)
+                        .sort((a, b) => new Date(b['Oluşturulma Tarihi']) - new Date(a['Oluşturulma Tarihi']));
+                    
+                    content.innerHTML = taskUpdates.length > 0 ? `
+                        <div class="space-y-6">
+                            ${taskUpdates.map(u => `
+                                <div class="timeline-item">
+                                    <div class="timeline-dot">
+                                        <i class="ph-bold ph-chat-circle-text text-white text-lg"></i>
+                                    </div>
+                                    <div class="glass rounded-xl p-5">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex items-center gap-3">
+                                                <div class="avatar w-10 h-10 text-sm">${(u.Atayan || 'S').charAt(0).toUpperCase()}</div>
+                                                <div>
+                                                    <div class="font-semibold text-white">${u.Atayan || 'Sistem'}</div>
+                                                    <div class="text-xs text-slate-500">${new Date(u['Oluşturulma Tarihi']).toLocaleString('tr-TR')}</div>
+                                                </div>
+                                            </div>
+                                            <span class="badge bg-blue-500/20 text-blue-300">${u['Mevcut Durum']}</span>
+                                        </div>
+                                        <p class="text-slate-300 text-sm leading-relaxed">${u.Not || u['Son Mesaj Metni'] || u['Aksiyon İçeriği'] ||'Güncelleme notu yok'}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="text-center py-12"><i class="ph-bold ph-chat-text text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">Henüz güncelleme kaydı yok</p></div>';
+                } 
+                else if (type === 'notes') {
+                    const taskNotes = notes.filter(n => n['İş ID'] === taskId)
+                        .sort((a, b) => new Date(b['Oluşturulma Tarihi']) - new Date(a['Oluşturulma Tarihi']));
+                    
+                    content.innerHTML = taskNotes.length > 0 ? `
+                        <div class="space-y-4">
+                            ${taskNotes.map(n => `
+                                <div class="glass rounded-xl p-5">
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <i class="ph-bold ph-note text-xl text-purple-400"></i>
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-2">
+                                                <span class="font-semibold text-white">${n.Atayan || 'Bilinmiyor'}</span>
+                                                <i class="ph ph-arrow-right text-slate-500"></i>
+                                                <span class="text-slate-300">${n.Atanan || 'Bilinmiyor'}</span>
+                                            </div>
+                                            <p class="text-slate-300 text-sm mb-2">${n['Görev İçeriği'] || 'Not içeriği yok'}</p>
+                                            <div class="text-xs text-slate-500">${new Date(n['Oluşturulma Tarihi']).toLocaleString('tr-TR')}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="text-center py-12"><i class="ph-bold ph-note text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">İşlem notu bulunamadı</p></div>';
+                }
+                else if (type === 'docs') {
+                    const taskDocs = documents.filter(d => d['İş ID'] === taskId);
+                    
+                    content.innerHTML = taskDocs.length > 0 ? `
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${taskDocs.map(d => `
+                                <a href="${d.Link}" target="_blank" rel="noopener noreferrer" class="document-card p-5 block group">
+                                    <div class="flex items-start gap-4">
+                                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                                            <i class="ph-bold ph-file-arrow-down text-2xl text-white"></i>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="font-semibold text-white mb-1 truncate group-hover:text-blue-400 transition">${d.Başlık || 'Belge'}</h4>
+                                            <p class="text-xs text-slate-500 mb-2">${d.Gönderen || 'Bilinmiyor'} tarafından eklendi</p>
+                                            ${d['Oluşturulma Tarihi'] ? `
+                                                <p class="text-xs text-slate-600">${new Date(d['Oluşturulma Tarihi']).toLocaleString('tr-TR')}</p>
+                                            ` : ''}
+                                        </div>
+                                        <i class="ph-bold ph-arrow-square-out text-slate-500 group-hover:text-blue-400 transition"></i>
+                                    </div>
+                                </a>
+                            `).join('')}
+                        </div>
+                    ` : '<div class="text-center py-12"><i class="ph-bold ph-files text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">Belge bulunamadı</p></div>';
+                }
+            }
+
+            // --- EVENT LISTENERS ---
+            searchInput.addEventListener('input', render);
+            [filterPerson, filterDepartment, filterPriority].forEach(el =>
+                el.addEventListener('change', render)
+            );
+
+            clearFiltersBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                filterPerson.value = '';
+                filterDepartment.value = '';
+                filterPriority.value = '';
+                render();
+            });
+
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentView = btn.id.replace('view-', '');
+                    document.querySelectorAll('.view-btn').forEach(b => {
+                        b.classList.remove('active');
+                        b.classList.add('filter-btn');
+                    });
+                    btn.classList.add('active');
+                    btn.classList.remove('filter-btn');
+                    render();
+                });
+            });
+
+            mainContent.addEventListener('click', (e) => {
+                const card = e.target.closest('[data-task-id]');
+                if (card) openModal(card.dataset.taskId);
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                taskModal.classList.add('hidden');
+                taskModal.classList.remove('flex');
+            });
+
+            taskModal.addEventListener('click', (e) => {
+                if (e.target === taskModal) {
+                    taskModal.classList.add('hidden');
+                    taskModal.classList.remove('flex');
+                }
+            });
+
+            document.getElementById('modal-tabs').addEventListener('click', e => {
+                const tabButton = e.target.closest('.tab-btn');
+                if (tabButton) {
+                    const tabType = tabButton.dataset.tab;
+                    const taskId = document.getElementById('modal-id').textContent;
+                    renderTab(tabType, taskId);
+                }
+            });
+
+            // --- INITIALIZATION ---
+            fetchData();
+        });
+    </script>
+</body>
+</html>
+
