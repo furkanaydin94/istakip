@@ -1,580 +1,261 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gelişmiş İş Takip Sistemi - Pro Dashboard</title>
+    <title>İş Takip Sistemi - Gruplama</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px;}
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .glass { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+        .voyage-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+        .voyage-card:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06); border-color: #93c5fd; } /* Daha yumuşak hover */
+        .kanban-board { display: grid; grid-auto-columns: minmax(320px, 1fr); grid-auto-flow: column; gap: 1.5rem; overflow-x: auto; padding-bottom: 1rem; }
+        .kanban-column { background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;} /* Sütunlara arka plan */
+        .kanban-tasks { display: grid; grid-template-columns: 1fr; gap: 1rem; align-content: start; }
+        .priority-critical { border-left: 3px solid #ef4444; }
+        .priority-high { border-left: 3px solid #f97316; }
+        .priority-normal { border-left: 3px solid #3b82f6; }
+        .priority-low { border-left: 3px solid #22c55e; }
+        .badge { padding: 3px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; border: 1px solid transparent; line-height: 1.2; } /* Daha küçük badge */
+        .badge-critical { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+        .badge-high { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+        .badge-normal { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+        .badge-low { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+        .badge-status { background: #e0f2fe; color: #0369a1; border-color: #bae6fd;} /* Genel durum badge stili */
+        .badge-trigger { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff;}
+        .badge-department { background: #e0e7ff; color: #4338ca; border-color: #c7d2fe;}
+        .modal-backdrop { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); animation: fadeIn 0.3s ease; }
+        .modal-content { animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1); max-width: 60rem; } /* Modal genişliği ayarlandı */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .tab-btn { transition: all 0.2s ease; position: relative; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom-color: #3b82f6; color: #3b82f6;}
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 13px; border: 2px solid white; } /* Avatar boyutu ayarlandı */
+        .loading-spinner { border: 3px solid rgba(59, 130, 246, 0.1); border-top-color: #3b82f6; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        #filter-menu { transition: transform 0.3s ease-in-out; transform: translateX(100%); box-shadow: -10px 0 20px rgba(0,0,0,0.1); }
+        #filter-menu.open { transform: translateX(0); }
+        .filter-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: #475569; font-size: 0.875rem; }
+        .filter-group select, .filter-group input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; color: #1e293b; font-size: 0.875rem; }
+        .card-field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #475569; }
+        .card-field i { width: 1rem; text-align: center; color: #94a3b8; } /* Icon rengi açıldı */
+        .card-field span { flex: 1; min-width: 0; }
+        .card-field strong { font-weight: 500; color: #334155; } /* Kalınlık azaltıldı */
+        .summary-card { cursor: pointer; }
+        .summary-card:hover { border-color: #93c5fd; background-color: #f0f9ff;}
+        .status-count-item, .priority-count-item { cursor: pointer; transition: background-color 0.2s ease; }
+        .status-count-item:hover, .priority-count-item:hover { background-color: #e0f2fe;} /* Hover efekti */
+        .grouping-controls button { transition: all 0.2s ease; }
+        .grouping-controls button.active { background-color: #3b82f6; color: white; }
+         /* Header yüksekliğini hesaba katan padding */
+         #main-content { padding-top: 140px; } /* Yaklaşık header yüksekliği */
+
+         .document-card:hover {
+            transform: none; /* Hover'da büyüme efekti kaldırıldı */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Normal gölge */
+            border-color: #93c5fd; /* Sadece border rengi */
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f8fafc;
-            color: #1e293b;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        ::-webkit-scrollbar {
-            width: 10px;
-            height: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        .glass {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .voyage-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .voyage-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            border-color: #06b6d4;
-        }
-
-        .kanban-board {
-            display: grid;
-            grid-auto-columns: minmax(340px, 1fr);
-            grid-auto-flow: column;
-            gap: 2rem;
-            overflow-x: auto;
-            padding-bottom: 1rem;
-        }
-
-        .kanban-column {
-            min-height: 600px;
-        }
-
-        .task-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-
-        .task-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            border-color: rgba(59, 130, 246, 0.5);
-        }
-
-        .priority-critical {
-            border-left: 4px solid #ef4444;
-        }
-
-        .priority-high {
-            border-left: 4px solid #f97316;
-        }
-
-        .priority-normal {
-            border-left: 4px solid #3b82f6;
-        }
-
-        .priority-low {
-            border-left: 4px solid #22c55e;
-        }
-
-        .badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .badge-critical {
-            background: #fef2f2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
-        }
-
-        .badge-high {
-            background: #fff7ed;
-            color: #ea580c;
-            border: 1px solid #fed7aa;
-        }
-
-        .badge-normal {
-            background: #eff6ff;
-            color: #2563eb;
-            border: 1px solid #bfdbfe;
-        }
-
-        .badge-low {
-            background: #f0fdf4;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
-        }
-
-        .modal-backdrop {
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
-            animation: fadeIn 0.3s ease;
-        }
-
-        .modal-content {
-            animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(50px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        .tab-btn {
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            border-radius: 3px 3px 0 0;
-        }
-
-        .timeline-item {
-            position: relative;
-            padding-left: 40px;
-        }
-
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: 15px;
-            top: 35px;
-            bottom: -20px;
-            width: 2px;
-            background: linear-gradient(180deg, #3b82f6 0%, rgba(59, 130, 246, 0) 100%);
-        }
-
-        .timeline-item:last-child::before {
-            display: none;
-        }
-
-        .timeline-dot {
-            position: absolute;
-            left: 0;
-            top: 10px;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-        }
-
-        .filter-btn {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .filter-btn:hover {
-            background: rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.5);
-        }
-
-        .view-btn {
-            background: transparent;
-            color: #475569;
-            transition: all 0.2s ease;
-            border-radius: 16px;
-        }
-
-        .view-btn:hover {
-            background: #f1f5f9;
-            color: #1e293b;
-        }
-
-        .view-btn.active {
-            background: #06b6d4;
-            color: white;
-            box-shadow: 0 2px 8px rgba(6, 182, 212, 0.25);
-        }
-
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 14px;
-            border: 2px solid rgba(59, 130, 246, 0.3);
-        }
-
-        .loading-spinner {
-            border: 3px solid rgba(59, 130, 246, 0.1);
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .sync-indicator {
-            animation: pulse 2s infinite;
-        }
-
-        .update-highlight {
-            background: linear-gradient(90deg, rgba(34, 197, 94, 0.1), transparent);
-            border-left: 3px solid #22c55e;
-        }
-
-        .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* Filter Off-canvas */
-        #filter-menu {
-            transition: transform 0.3s ease-in-out;
-            transform: translateX(100%);
-            box-shadow: -10px 0 20px rgba(0, 0, 0, 0.1);
-        }
-
-        #filter-menu.open {
-            transform: translateX(0);
-        }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #475569;
-        }
-
-        .filter-group select,
-        .filter-group input {
-            width: 100%;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            background-color: #f8fafc;
-            color: #1e293b;
-        }
-
-        .view-toggle-bg {
-            background-color: #e2e8f0;
-        }
-
-        .view-toggle-button {
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .view-toggle-bg.list-active .view-toggle-button {
-            transform: translateX(100%);
-        }
+         /* Başlık için stil */
+         .view-title {
+             font-size: 1.5rem; /* 24px */
+             font-weight: 600;
+             color: #1e293b; /* slate-800 */
+             margin-bottom: 1.5rem; /* 24px */
+         }
+         /* Geri butonu */
+         .back-button {
+             display: inline-flex;
+             align-items: center;
+             gap: 0.5rem;
+             font-size: 0.875rem;
+             color: #475569;
+             margin-bottom: 1rem;
+             padding: 0.25rem 0.5rem;
+             border-radius: 6px;
+             transition: background-color 0.2s ease;
+         }
+         .back-button:hover {
+             background-color: #f1f5f9;
+         }
     </style>
 </head>
-
-<body></body>
-<!-- Loading Overlay -->
-<div id="loading-overlay"
-    class="fixed inset-0 bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center z-[100]">
-    <div class="loading-spinner"></div>
-    <p class="mt-6 text-lg font-semibold text-white animate-pulse">Veriler yükleniyor ve eşleştiriliyor...</p>
-    <div id="loading-progress" class="mt-4 text-sm text-slate-400"></div>
-</div>
-
-<!-- Miro Style Header -->
-<header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200">
-    <div class="flex items-center justify-between px-6 py-4">
-        <!-- Logo & Title -->
-        <div class="flex items-center gap-4">
-            <div
-                class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center">
-                <i class="ph-bold ph-kanban text-xl text-white"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-semibold text-slate-900">İş Takip Sistemi</h1>
-                <p class="text-xs text-slate-700">Akıllı eşleştirme ve gerçek zamanlı güncelleme</p>
-            </div>
-        </div>
+<body>
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-100 flex flex-col items-center justify-center z-[100]">
+        <div class="loading-spinner"></div>
+        <p class="mt-4 text-sm font-medium text-slate-600">Veriler yükleniyor...</p>
+        <div id="loading-progress" class="mt-2 text-xs text-slate-500"></div>
     </div>
 
-    <!-- Search & Actions -->
-    <div class="flex items-center gap-4">
-        <div class="relative">
-            <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-600"></i>
-            <input type="text" id="search-input" placeholder="Görevlerde ara..."
-                class="w-80 bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition placeholder-slate-600">
-        </div>
-        <button id="sync-btn"
-            class="bg-slate-50 hover:bg-slate-100 px-4 py-3 rounded-2xl transition border border-slate-200">
-            <i class="ph-bold ph-arrows-clockwise text-lg text-slate-800"></i>
-        </button>
-        <div id="last-sync" class="text-xs text-slate-500 hidden">
-            <span id="sync-time"></span>
-        </div>
-    </div>
-    </div>
-
-    <!-- Simplified Navigation -->
-    <div class="flex items-center justify-between px-6 py-4 border-t border-slate-200">
-        <!-- Left: View Toggle & Other Views -->
-        <div class="flex items-center gap-4">
-            <!-- Kanban/List Toggle -->
-            <div id="view-toggle-container"
-                class="flex items-center gap-2 cursor-pointer p-1 bg-slate-200 rounded-full">
-                <button id="view-toggle-kanban"
-                    class="px-3 py-1 text-sm font-medium text-blue-700 bg-white rounded-full shadow-sm">Pano</button>
-                <button id="view-toggle-list" class="px-3 py-1 text-sm font-medium text-slate-600">Liste</button>
+    <header class="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-200">
+        <div class="flex items-center justify-between px-6 py-3">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+                    <i class="ph-bold ph-kanban text-lg text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-semibold text-slate-800">İş Takip Sistemi</h1>
+                    <p class="text-xs text-slate-500">Özet & Detay Görünümü</p>
+                </div>
             </div>
 
-            <div class="h-6 w-px bg-slate-200"></div>
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="search-input" placeholder="Görevlerde ara..." class="w-72 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 transition placeholder-slate-400">
+                </div>
+                <button id="sync-btn" title="Verileri Yenile" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-lg transition border border-slate-200 text-slate-600">
+                    <i class="ph-bold ph-arrows-clockwise text-lg"></i>
+                </button>
+                <div id="last-sync" class="text-xs text-slate-500 hidden whitespace-nowrap">
+                    <span id="sync-time"></span>
+                </div>
+            </div>
+        </div>
 
-            <button id="view-person"
-                class="view-btn px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-                <i class="ph ph-users-three"></i> Kişiler
+        <div class="flex items-center justify-between px-6 py-2 border-t border-slate-200">
+            <div class="flex items-center gap-2">
+                <button id="view-toggle-kanban" class="view-btn px-3 py-1.5 rounded-md font-medium text-sm flex items-center gap-1.5 text-slate-600 hover:bg-slate-100">
+                    <i class="ph ph-trello-logo"></i> Pano
+                </button>
+                <button id="view-toggle-list" class="view-btn px-3 py-1.5 rounded-md font-medium text-sm flex items-center gap-1.5 text-slate-600 hover:bg-slate-100">
+                    <i class="ph ph-list-bullets"></i> Liste
+                </button>
+                <button id="view-grouping" class="view-btn px-3 py-1.5 rounded-md font-medium text-sm flex items-center gap-1.5 text-slate-600 hover:bg-slate-100">
+                    <i class="ph ph-chart-pie-slice"></i> Grupla
+                </button>
+                 <button id="view-docs" class="view-btn px-3 py-1.5 rounded-md font-medium text-sm flex items-center gap-1.5 text-slate-600 hover:bg-slate-100">
+                    <i class="ph ph-files"></i> Belgeler
+                </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="open-filter-btn" class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-md transition flex items-center gap-1.5 text-sm font-medium">
+                    <i class="ph ph-funnel text-base"></i> Filtrele
+                </button>
+                <div id="active-filter-count" class="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-medium hidden">0 Aktif</div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" class="px-6 pb-8">
+        <!-- Dinamik içerik buraya yüklenecek --></main>
+
+    <div id="filter-menu-backdrop" class="fixed inset-0 bg-black/30 z-50 hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="filter-menu" class="fixed top-0 right-0 bottom-0 w-80 bg-white shadow-xl z-[60] transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b border-slate-200">
+            <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <i class="ph ph-funnel text-blue-600"></i> Filtreleme
+            </h2>
+            <button id="close-filter-btn" class="p-1 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-700">
+                <i class="ph ph-x text-xl"></i>
             </button>
-            <button id="view-docs"
-                class="view-btn px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 text-slate-600 hover:bg-slate-100">
-                <i class="ph ph-files"></i> Belgeler
-            </button>
         </div>
 
-        <!-- Right: Filter Button -->
-        <div class="flex items-center gap-3">
-            <button id="open-filter-btn"
-                class="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm font-medium">
-                <i class="ph ph-funnel"></i> Filtrele
-            </button>
-            <div id="active-filter-count"
-                class="text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-medium hidden">0 Aktif</div>
+        <div class="flex-grow p-4 overflow-y-auto space-y-4">
+             <!-- Filtreler --><div class="filter-group">
+                <label for="filter-talepEden">Talep Eden Makam</label>
+                <select id="filter-talepEden"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-kaynak">Kaynak / Harici Paydaş</label>
+                <select id="filter-kaynak"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-ilgiliDepartman">İlgili Departman</label>
+                <select id="filter-ilgiliDepartman"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-tetiklenmeTuru">Tetiklenme Türü</label>
+                <select id="filter-tetiklenmeTuru"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-gorevTipi">Görev Tipi</label>
+                <select id="filter-gorevTipi"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-oncelik">Öncelik</label>
+                <select id="filter-oncelik"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-mevcutDurum">Mevcut Durum</label>
+                <select id="filter-mevcutDurum"></select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-sorumlu">Sorumlular</label>
+                <select id="filter-sorumlu"></select>
+            </div>
         </div>
-    </div>
-</header>
 
-<!-- Main Content -->
-<main id="main-content" class="pt-32 px-6 pb-8 min-h-screen">
-    <!-- Content will be rendered here -->
-</main>
-
-<!-- Filter Off-canvas Menu -->
-<div id="filter-menu-backdrop" class="fixed inset-0 bg-black/30 z-50 hidden opacity-0 transition-opacity duration-300">
-</div>
-<div id="filter-menu"
-    class="fixed top-0 right-0 bottom-0 w-80 bg-white shadow-xl z-[60] transform translate-x-full transition-transform duration-300 flex flex-col">
-    <div class="flex items-center justify-between p-4 border-b border-slate-200">
-        <h2 class="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <i class="ph ph-funnel text-blue-600"></i> Filtreleme Seçenekleri
-        </h2>
-        <button id="close-filter-btn" class="p-1 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-700">
-            <i class="ph ph-x text-xl"></i>
-        </button>
-    </div>
-
-    <div class="flex-grow p-4 overflow-y-auto space-y-4">
-        <!-- Filtre Grupları -->
-        <div class="filter-group">
-            <label for="filter-talepEden">Talep Eden Makam</label>
-            <select id="filter-talepEden"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-kaynak">Kaynak / Harici Paydaş</label>
-            <select id="filter-kaynak"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-ilgiliDepartman">İlgili Departman</label>
-            <select id="filter-ilgiliDepartman"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-tetiklenmeTuru">Tetiklenme Türü</label>
-            <select id="filter-tetiklenmeTuru"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-gorevTipi">Görev Tipi</label>
-            <select id="filter-gorevTipi"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-oncelik">Öncelik</label>
-            <select id="filter-oncelik"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-mevcutDurum">Mevcut Durum</label>
-            <select id="filter-mevcutDurum"></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-sorumlu">Sorumlular</label>
-            <select id="filter-sorumlu"></select>
+        <div class="p-4 border-t border-slate-200 flex justify-end gap-2">
+            <button id="reset-filters-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Sıfırla</button>
+            <button id="apply-filters-btn" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition">Uygula</button>
         </div>
     </div>
 
-    <div class="p-4 border-t border-slate-200 flex justify-end gap-2">
-        <button id="reset-filters-btn"
-            class="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Sıfırla</button>
-        <button id="apply-filters-btn"
-            class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition">Uygula</button>
-    </div>
-</div>
-<! -- Enhanced Task Detail Modal -->
     <div id="task-modal" class="fixed inset-0 modal-backdrop hidden items-center justify-center z-50 p-4">
-        <div
-            class="modal-content glass rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden">
-            <!-- Modal Header -->
-            <div class="flex justify-between items-start p-6 border-b border-slate-700/50">
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                        <h2 id="modal-title" class="text-3xl font-bold text-slate-900"></h2>
+        <div class="modal-content glass rounded-xl shadow-xl w-full flex flex-col overflow-hidden max-h-[85vh]">
+            <div class="flex justify-between items-start p-5 border-b border-slate-200">
+                <div class="flex-1 mr-4">
+                    <div class="flex items-center gap-3 mb-1.5">
+                        <h2 id="modal-title" class="text-2xl font-semibold text-slate-800"></h2>
                         <span id="modal-priority-badge" class="badge"></span>
-                        <span id="modal-update-indicator" class="badge bg-green-500/20 text-green-300 hidden">
-                            <i class="ph-bold ph-check-circle"></i> Güncel
-                        </span>
                     </div>
-                    <div class="flex items-center gap-4 text-sm text-slate-400">
+                    <div class="flex items-center gap-3 text-xs text-slate-500">
                         <span class="flex items-center gap-1">
                             <i class="ph ph-hash"></i>
                             <span id="modal-id" class="font-mono"></span>
                         </span>
                         <span id="modal-status-badge" class="badge"></span>
-                        <span id="modal-trigger-type" class="badge bg-purple-500/20 text-purple-300"></span>
+                        <span id="modal-trigger-type" class="badge"></span>
                     </div>
                 </div>
-                <button id="close-modal"
-                    class="text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl p-2 transition">
-                    <i class="ph-bold ph-x text-2xl"></i>
+                <button id="close-modal" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-1.5 transition">
+                    <i class="ph-bold ph-x text-xl"></i>
                 </button>
             </div>
 
-            <!-- Modal Body -->
-            <div class="flex-1 overflow-y-auto p-6">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Left: Task Info -->
+            <div class="flex-1 overflow-y-auto p-5">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
                     <div class="lg:col-span-1 space-y-4">
-                        <div class="glass rounded-xl p-5">
-                            <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-blue-400">
+                         <div class="glass rounded-lg p-4">
+                            <h3 class="font-semibold text-base mb-3 flex items-center gap-2 text-blue-700">
                                 <i class="ph-bold ph-info"></i> Görev Detayları
                             </h3>
-                            <div id="modal-details" class="space-y-3">
-                                <!-- Details will be rendered here -->
-                            </div>
+                            <div id="modal-details" class="space-y-2.5 text-sm text-slate-700"></div>
                         </div>
 
-                        <div class="glass rounded-xl p-5">
-                            <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-purple-400">
-                                <i class="ph-bold ph-users"></i> Ekip & Onay Süreci
+                         <div class="glass rounded-lg p-4">
+                            <h3 class="font-semibold text-base mb-3 flex items-center gap-2 text-purple-700">
+                                <i class="ph-bold ph-users"></i> Ekip & Onay
                             </h3>
-                            <div id="modal-team" class="space-y-3">
-                                <!-- Team will be rendered here -->
-                            </div>
+                            <div id="modal-team" class="space-y-2.5 text-sm text-slate-700"></div>
                         </div>
                     </div>
 
-                    <!-- Right: Tabs Content -->
                     <div class="lg:col-span-2">
-                        <div class="glass rounded-xl overflow-hidden">
-                            <div class="border-b border-slate-700/50 px-6 pt-4">
-                                <nav id="modal-tabs" class="flex gap-6">
-                                    <button data-tab="updates"
-                                        class="tab-btn active pb-4 px-1 font-semibold text-sm text-slate-900">
-                                        <i class="ph-bold ph-chat-text"></i> Güncelleme Kayıtları
+                         <div class="glass rounded-lg overflow-hidden">
+                             <div class="border-b border-slate-200 px-5 pt-3">
+                                <nav id="modal-tabs" class="flex gap-5">
+                                     <button data-tab="workflow" class="tab-btn active pb-2 px-1 font-medium text-sm text-slate-700">
+                                        <i class="ph ph-flow-arrow mr-1"></i> İş Akışı
                                     </button>
-                                    <button data-tab="actions"
-                                        class="tab-btn pb-4 px-1 font-semibold text-sm text-slate-400 hover:text-white">
-                                        <i class="ph-bold ph-lightning"></i> Aksiyon Geçmişi
-                                    </button>
-                                    <button data-tab="docs"
-                                        class="tab-btn pb-4 px-1 font-semibold text-sm text-slate-400 hover:text-white">
-                                        <i class="ph-bold ph-files"></i> Belgeler
-                                    </button>
-                                    <button data-tab="chain"
-                                        class="tab-btn pb-4 px-1 font-semibold text-sm text-slate-400 hover:text-white">
-                                        <i class="ph-bold ph-link"></i> Kayıt Zinciri
+                                     <button data-tab="docs" class="tab-btn pb-2 px-1 font-medium text-sm text-slate-500 hover:text-slate-700">
+                                        <i class="ph ph-files mr-1"></i> Belgeler
                                     </button>
                                 </nav>
                             </div>
-                            <div id="tab-content" class="p-6">
-                                <!-- Tab content will be rendered here -->
+                             <div id="tab-content" class="p-5 min-h-[300px]">
                             </div>
                         </div>
                     </div>
@@ -582,1422 +263,979 @@
             </div>
         </div>
     </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const SHEET_URLS = {
+        gorevler: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=0&single=true&output=tsv",
+        belgeler: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=248304037&single=true&output=tsv",
+        kayitZinciri: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=337730490&single=true&output=tsv"
+    };
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const SHEET_URLS = {
-                gorevler: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=0&single=true&output=tsv",
-                guncelleme: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=1133116779&single=true&output=tsv",
-                belgeler: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=248304037&single=true&output=tsv",
-                islemKayitlari: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=1417601390&single=true&output=tsv",
-                kayitZinciri: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTlAI9WzClZeiHte_Mpx4EklPbcRByHTBAUVjoHerT39dNbmAwFXiRp6ITIIj92IW9-SijJAxFMnh4z/pub?gid=337730490&single=true&output=tsv"
-            };
+    let allTasks = []; // Tüm görevleri saklamak için
+    let documents = [];
+    let kayitZinciri = [];
+    let people = new Set();
+    let departments = new Set();
+    let currentView = 'kanban'; // Varsayılan görünüm
+    let currentGroupingType = 'person'; // 'person' or 'department'
+    let currentGroupDetail = null; // Hangi grubun detayının gösterildiğini tutar { type, name }
+    let lastSyncTime = null;
 
-            let tasks = [];
-            let updates = [];
-            let notes = [];
-            let documents = [];
-            let kayitZinciri = [];
-            let people = new Set();
-            let departments = new Set();
-            let currentView = 'kanban';
-            let lastSyncTime = null;
+    // --- DOM Elementleri ---
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingProgress = document.getElementById('loading-progress');
+    const mainContent = document.getElementById('main-content');
+    const searchInput = document.getElementById('search-input');
+    const taskModal = document.getElementById('task-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const syncBtn = document.getElementById('sync-btn');
+    const lastSyncDiv = document.getElementById('last-sync');
+    const syncTimeSpan = document.getElementById('sync-time');
+    const modalTabs = document.getElementById('modal-tabs');
+    const tabContent = document.getElementById('tab-content');
+    const filterMenu = document.getElementById('filter-menu');
+    const filterMenuBackdrop = document.getElementById('filter-menu-backdrop');
 
-            // Tarih parsing fonksiyonu - "17.10.2025 14:21:07" formatını destekler
-            function parseCustomDate(dateStr) {
-                if (!dateStr) return null;
-
-                // "17.10.2025 14:21:07" formatını kontrol et
-                const customFormat = /^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/;
-                const match = dateStr.match(customFormat);
-
-                if (match) {
+    // --- Yardımcı Fonksiyonlar ---
+    function parseCustomDate(dateStr) {
+        if (!dateStr) return null;
+        const formats = [
+            /^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/, // DD.MM.YYYY HH:MM:SS
+            /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/, // DD/MM/YYYY HH:MM:SS
+            /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // DD.MM.YYYY
+            /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/  // DD/MM/YYYY
+        ];
+        for (const format of formats) {
+            const match = dateStr.match(format);
+            if (match) {
+                if (match.length > 4) { // Time included
                     const [, day, month, year, hour, minute, second] = match;
                     return new Date(year, month - 1, day, hour, minute, second);
+                } else { // Date only
+                    const [, day, month, year] = match;
+                    return new Date(year, month - 1, day);
                 }
-
-                // Standart format dene
-                return new Date(dateStr);
             }
+        }
+        const standardDate = new Date(dateStr); // Try standard parsing
+        if (!isNaN(standardDate)) return standardDate;
+        console.warn("Could not parse date:", dateStr);
+        return null;
+    }
 
-            // DOM Elements
-            const loadingOverlay = document.getElementById('loading-overlay');
-            const loadingProgress = document.getElementById('loading-progress');
-            const mainContent = document.getElementById('main-content');
-            const statsBar = document.getElementById('stats-bar');
-            const searchInput = document.getElementById('search-input');
-            // Old filter elements removed - now using filter menu
-            const taskModal = document.getElementById('task-modal');
-            const closeModalBtn = document.getElementById('close-modal');
-            const syncBtn = document.getElementById('sync-btn');
-            const lastSyncDiv = document.getElementById('last-sync');
-            const syncTimeSpan = document.getElementById('sync-time');
+    function getPriorityClass(priority) {
+        if (!priority) return 'border-l-3 border-slate-300';
+        priority = String(priority).toLowerCase();
+        if (priority.includes('kritik')) return 'priority-critical';
+        if (priority.includes('yüksek')) return 'priority-high';
+        if (priority.includes('normal')) return 'priority-normal';
+        if (priority.includes('düşük')) return 'priority-low';
+        return 'border-l-3 border-slate-300';
+    }
 
-            // --- ENHANCED DATA FETCHING & PROCESSING ---
-            async function fetchData() {
-                loadingOverlay.classList.remove('hidden');
-                loadingProgress.textContent = 'Bağlantı kuruluyor...';
+    function getPriorityBadge(priority, small = false) {
+        const sizeClass = small ? '!py-0.5 !px-2 !text-xs' : ''; // Smaller badge style
+        if (!priority) return '';
+        priority = String(priority).toLowerCase();
+        if (priority.includes('kritik')) return `<span class="badge badge-critical ${sizeClass}">🔴 Kritik</span>`;
+        if (priority.includes('yüksek')) return `<span class="badge badge-high ${sizeClass}">🟠 Yüksek</span>`;
+        if (priority.includes('normal')) return `<span class="badge badge-normal ${sizeClass}">🟡 Normal</span>`;
+        if (priority.includes('düşük')) return `<span class="badge badge-low ${sizeClass}">🔵 Düşük</span>`;
+        return `<span class="badge bg-slate-100 text-slate-600 border border-slate-300 ${sizeClass}">${priority}</span>`;
+    }
 
-                try {
-                    const promises = Object.entries(SHEET_URLS).map(([key, url]) =>
-                        new Promise((resolve, reject) => {
-                            loadingProgress.textContent = `${key} verileri yükleniyor...`;
-                            Papa.parse(url, {
-                                download: true,
-                                header: true,
-                                delimiter: '\t',
-                                skipEmptyLines: true,
-                                complete: results => {
-                                    console.log(`${key} loaded:`, results.data.length, 'rows');
-                                    resolve({ key, data: results.data });
-                                },
-                                error: err => reject(new Error(`Failed to load ${key}: ${url}`))
+    function getStatusBadge(status, small = false) {
+        const sizeClass = small ? '!py-0.5 !px-2 !text-xs' : '';
+        if (!status) return `<span class="badge bg-slate-100 text-slate-600 border border-slate-300 ${sizeClass}">-</span>`;
+        // Potential: Add color coding based on status keywords
+        return `<span class="badge badge-status ${sizeClass}">${status}</span>`;
+    }
+
+    // --- Veri Çekme ve İşleme ---
+    async function fetchData() {
+        loadingOverlay.style.display = 'flex'; // Use style.display
+        loadingProgress.textContent = 'Bağlantı kuruluyor...';
+
+        try {
+            const promises = Object.entries(SHEET_URLS).map(([key, url]) =>
+                new Promise((resolve, reject) => {
+                    loadingProgress.textContent = `${key} verileri yükleniyor...`;
+                    Papa.parse(url, {
+                        download: true, header: true, delimiter: '\t', skipEmptyLines: true,
+                        complete: results => {
+                             const cleanedData = results.data.map(row => {
+                                let newRow = {};
+                                Object.keys(row).forEach(k => {
+                                    const cleanKey = k.trim(); // Trim key
+                                    newRow[cleanKey] = (typeof row[k] === 'string') ? row[k].trim() : row[k];
+                                });
+                                // Ensure critical IDs are strings
+                                if (newRow['İş ID']) newRow['İş ID'] = String(newRow['İş ID']);
+                                if (newRow['Mesaj ID']) newRow['Mesaj ID'] = String(newRow['Mesaj ID']);
+                                if (newRow['Yanıtlanan Mesaj ID']) newRow['Yanıtlanan Mesaj ID'] = String(newRow['Yanıtlanan Mesaj ID']);
+                                return newRow;
                             });
-                        })
-                    );
-
-                    loadingProgress.textContent = 'Veriler işleniyor...';
-                    const results = await Promise.all(promises);
-
-                    // Assign data to variables
-                    results.forEach(({ key, data }) => {
-                        console.log(`${key} verisi yüklendi:`, data.length, 'kayıt');
-                        if (data.length > 0) console.log(`${key} örnek veri:`, data[0]);
-                        switch (key) {
-                            case 'gorevler': tasks = data; break;
-                            case 'guncelleme': updates = data; break;
-                            case 'belgeler': documents = data; break;
-                            case 'islemKayitlari': notes = data; break;
-                            case 'kayitZinciri': kayitZinciri = data; break;
-                        }
+                            resolve({ key, data: cleanedData });
+                        },
+                        error: err => { console.error(`Error loading ${key}:`, err); reject(new Error(`Failed to load ${key}`));}
                     });
-
-                    loadingProgress.textContent = 'Veriler eşleştiriliyor...';
-                    await processDataWithMatching();
-
-                    loadingProgress.textContent = 'Arayüz hazırlanıyor...';
-                    setupFilters();
-                    renderEnhancedStats();
-                    render();
-
-                    lastSyncTime = new Date();
-                    updateSyncIndicator();
-
-                } catch (error) {
-                    console.error('Data fetch error:', error);
-                    loadingProgress.innerHTML = '<span class="text-red-400">❌ Veri yüklenemedi. Lütfen URL\'leri kontrol edin ve sayfayı yenileyin.</span>';
-                    setTimeout(() => loadingOverlay.classList.add('hidden'), 3000);
-                } finally {
-                    setTimeout(() => loadingOverlay.classList.add('hidden'), 500);
-                }
-            }
-
-            async function processDataWithMatching() {
-                // Create comprehensive mapping system
-                const messageToJobMap = new Map();
-                const jobToMessagesMap = new Map();
-
-                // Build message-job relationship from kayitZinciri
-                kayitZinciri.forEach(row => {
-                    if (row['İş ID'] && row['Mesaj ID']) {
-                        messageToJobMap.set(row['Mesaj ID'], row['İş ID']);
-
-                        if (!jobToMessagesMap.has(row['İş ID'])) {
-                            jobToMessagesMap.set(row['İş ID'], []);
-                        }
-                        jobToMessagesMap.get(row['İş ID']).push(row['Mesaj ID']);
-                    }
-                });
-
-                console.log('Message-Job mappings:', messageToJobMap.size);
-                console.log('Job-Messages mappings:', jobToMessagesMap.size);
-
-                // Enhanced linking function with multiple fallback strategies
-                const linkRow = (row, dataType) => {
-                    if (!row['İş ID']) {
-                        // Strategy 1: Direct message ID match
-                        let jobId = messageToJobMap.get(row['Mesaj ID']);
-
-                        // Strategy 2: Reply message ID match
-                        if (!jobId && row['Yanıtlanan Mesaj ID']) {
-                            jobId = messageToJobMap.get(row['Yanıtlanan Mesaj ID']);
-                        }
-
-                        // Strategy 3: Content-based matching for updates
-                        if (!jobId && dataType === 'updates' && row['Başlık']) {
-                            const matchingTask = tasks.find(task =>
-                                task.Başlık && task.Başlık.toLowerCase().includes(row['Başlık'].toLowerCase().substring(0, 20))
-                            );
-                            if (matchingTask) {
-                                jobId = matchingTask['İş ID'];
-                            }
-                        }
-
-                        if (jobId) {
-                            row['İş ID'] = jobId;
-                            row['_matched'] = true; // Mark as matched for debugging
-                        }
-                    }
-                    return row;
-                };
-
-                // Apply linking to all data sources
-                documents.forEach(row => linkRow(row, 'documents'));
-                notes.forEach(row => linkRow(row, 'notes'));
-                updates.forEach(row => linkRow(row, 'updates'));
-
-                // Extract people and departments
-                people.clear();
-                departments.clear();
-                tasks.forEach(task => {
-                    if (task.Sorumlular) {
-                        task.Sorumlular.split(',').forEach(p => people.add(p.trim()));
-                    }
-                    if (task['İlgili Departman(lar)']) {
-                        task['İlgili Departman(lar)'].split(',').forEach(d => departments.add(d.trim()));
-                    }
-                });
-
-                // Log matching statistics
-                const matchedUpdates = updates.filter(u => u['İş ID']).length;
-                const matchedDocs = documents.filter(d => d['İş ID']).length;
-                const matchedNotes = notes.filter(n => n['İş ID']).length;
-
-                console.log('Matching Results:');
-                console.log(`Updates: ${matchedUpdates}/${updates.length} matched`);
-                console.log(`Documents: ${matchedDocs}/${documents.length} matched`);
-                console.log(`Notes: ${matchedNotes}/${notes.length} matched`);
-            }
-            function setupFilters() {
-                // Extract unique values for all filter options
-                const allUniqueValues = {
-                    'Talep Eden Makam': new Set(),
-                    'Kaynak / Harici Paydaş': new Set(),
-                    'İlgili Departman(lar)': new Set(),
-                    'Tetiklenme Türü': new Set(),
-                    'Görev Tipi': new Set(),
-                    'Öncelik': new Set(),
-                    'Mevcut Durum': new Set(),
-                    'Sorumlular': new Set()
-                };
-
-                // Populate from all tasks
-                tasks.forEach(task => {
-                    Object.keys(allUniqueValues).forEach(key => {
-                        if (task[key]) {
-                            if (key === 'Sorumlular' || key === 'İlgili Departman(lar)' || key === 'Görev Tipi') {
-                                String(task[key]).split(',').forEach(val => val.trim() && allUniqueValues[key].add(val.trim()));
-                            } else {
-                                task[key].trim() && allUniqueValues[key].add(task[key].trim());
-                            }
-                        }
-                    });
-                });
-
-                // Convert sets to sorted arrays and populate dropdowns
-                Object.keys(allUniqueValues).forEach(key => {
-                    allUniqueValues[key] = Array.from(allUniqueValues[key]).sort();
-                });
-
-                // Populate filter menu dropdowns
-                populateFilterSelect('filter-talepEden', allUniqueValues['Talep Eden Makam'], 'Tüm Makamlar');
-                populateFilterSelect('filter-kaynak', allUniqueValues['Kaynak / Harici Paydaş'], 'Tüm Kaynaklar');
-                populateFilterSelect('filter-ilgiliDepartman', allUniqueValues['İlgili Departman(lar)'], 'Tüm Departmanlar');
-                populateFilterSelect('filter-tetiklenmeTuru', allUniqueValues['Tetiklenme Türü'], 'Tüm Tetiklenme Türleri');
-                populateFilterSelect('filter-gorevTipi', allUniqueValues['Görev Tipi'], 'Tüm Görev Tipleri');
-                populateFilterSelect('filter-oncelik', allUniqueValues['Öncelik'], 'Tüm Öncelikler');
-                populateFilterSelect('filter-mevcutDurum', allUniqueValues['Mevcut Durum'], 'Tüm Durumlar');
-                populateFilterSelect('filter-sorumlu', allUniqueValues['Sorumlular'], 'Tüm Sorumlular');
-            }
-
-            function populateFilterSelect(selectId, optionsArray, defaultText) {
-                const selectElement = document.getElementById(selectId);
-                if (!selectElement) return;
-                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
-                optionsArray.forEach(option => {
-                    if (option) {
-                        selectElement.innerHTML += `<option value="${option}">${option}</option>`;
-                    }
-                });
-            }
-
-            function applyFilters() {
-                const search = searchInput ? searchInput.value.toLowerCase() : '';
-
-                // Read values from the filter menu
-                const selectedMakam = document.getElementById('filter-talepEden')?.value || '';
-                const selectedKaynak = document.getElementById('filter-kaynak')?.value || '';
-                const selectedDept = document.getElementById('filter-ilgiliDepartman')?.value || '';
-                const selectedTetiklenme = document.getElementById('filter-tetiklenmeTuru')?.value || '';
-                const selectedGorevTipi = document.getElementById('filter-gorevTipi')?.value || '';
-                const selectedOncelik = document.getElementById('filter-oncelik')?.value || '';
-                const selectedDurum = document.getElementById('filter-mevcutDurum')?.value || '';
-                const selectedSorumlu = document.getElementById('filter-sorumlu')?.value || '';
-
-                return tasks.filter(task => {
-                    const searchMatch = !search || Object.values(task).some(v =>
-                        String(v).toLowerCase().includes(search)
-                    );
-
-                    const makamMatch = !selectedMakam || (task['Talep Eden Makam'] && task['Talep Eden Makam'] === selectedMakam);
-                    const kaynakMatch = !selectedKaynak || (task['Kaynak / Harici Paydaş'] && task['Kaynak / Harici Paydaş'] === selectedKaynak);
-                    const deptMatch = !selectedDept || (task['İlgili Departman(lar)'] && task['İlgili Departman(lar)'].includes(selectedDept));
-                    const tetiklenmeMatch = !selectedTetiklenme || (task['Tetiklenme Türü'] && task['Tetiklenme Türü'] === selectedTetiklenme);
-                    const gorevTipiMatch = !selectedGorevTipi || (task['Görev Tipi'] && task['Görev Tipi'].includes(selectedGorevTipi));
-                    const oncelikMatch = !selectedOncelik || (task['Öncelik'] && task['Öncelik'] === selectedOncelik);
-                    const durumMatch = !selectedDurum || (task['Mevcut Durum'] && task['Mevcut Durum'] === selectedDurum);
-                    const sorumluMatch = !selectedSorumlu || (task['Sorumlular'] && task['Sorumlular'].includes(selectedSorumlu));
-
-                    return searchMatch && makamMatch && kaynakMatch && deptMatch && tetiklenmeMatch && gorevTipiMatch && oncelikMatch && durumMatch && sorumluMatch;
-                });
-            }
-
-            function renderEnhancedStats() {
-                // Stats removed - clean Miro-style interface
-            }
-
-            function updateSyncIndicator() {
-                if (lastSyncTime) {
-                    syncTimeSpan.textContent = lastSyncTime.toLocaleTimeString('tr-TR');
-                    lastSyncDiv.classList.remove('hidden');
-                    syncBtn.classList.remove('sync-indicator');
-                }
-            }
-            function getPriorityClass(priority) {
-                if (!priority) return 'border-l-4 border-slate-600';
-                if (priority.includes('Kritik')) return 'priority-critical';
-                if (priority.includes('Yüksek')) return 'priority-high';
-                if (priority.includes('Normal')) return 'priority-normal';
-                if (priority.includes('Düşük')) return 'priority-low';
-                return 'border-l-4 border-slate-600';
-            }
-
-            function getPriorityBadge(priority) {
-                if (!priority) return '';
-                if (priority.includes('Kritik')) return '<span class="badge badge-critical">🔴 Kritik</span>';
-                if (priority.includes('Yüksek')) return '<span class="badge badge-high">🟠 Yüksek</span>';
-                if (priority.includes('Normal')) return '<span class="badge badge-normal">🟡 Normal</span>';
-                if (priority.includes('Düşük')) return '<span class="badge badge-low">🔵 Düşük</span>';
-                return '';
-            }
-
-            function createEnhancedTaskCard(task) {
-                const assigned = task.Sorumlular ? task.Sorumlular.split(',').map(p => p.trim()) : [];
-                const updatesCount = updates.filter(u => u['İş ID'] === task['İş ID']).length;
-                const docsCount = documents.filter(d => d['İş ID'] === task['İş ID']).length;
-                const notesCount = notes.filter(n => n['İş ID'] === task['İş ID']).length;
-
-                // Check for recent updates
-                const recentUpdate = updates.filter(u => u['İş ID'] === task['İş ID'])
-                    .sort((a, b) => parseCustomDate(b['Oluşturulma Tarihi']) - parseCustomDate(a['Oluşturulma Tarihi']))[0];
-
-                const hasRecentUpdate = recentUpdate && parseCustomDate(recentUpdate['Oluşturulma Tarihi']) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-                return `
-                    <div class="voyage-card p-5 cursor-pointer transition-all duration-200 ${hasRecentUpdate ? 'border-l-4 border-cyan-400' : ''}" data-task-id="${task['İş ID']}">
-                        <div class="flex items-start justify-between mb-3">
-                            <h3 class="font-semibold text-slate-900 text-base leading-tight flex-1 pr-2">${task.Başlık}</h3>
-                            ${getPriorityBadge(task.Öncelik)}
-                        </div>
-                        
-                        <p class="text-sm text-slate-700 mb-4 line-clamp-2 leading-relaxed">${task['Görev İçeriği'] || 'Açıklama yok'}</p>
-                        
-                        ${task['Talep Eden Makam'] ? `
-                            <div class="text-xs text-slate-600 mb-3 flex items-center gap-2">
-                                <i class="ph ph-buildings text-cyan-500"></i>
-                                ${task['Talep Eden Makam']}
-                            </div>
-                        ` : ''}
-
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-                            <div class="flex items-center gap-3 text-xs text-slate-600">
-                                <span class="flex items-center gap-1">
-                                    <i class="ph ph-chat-text"></i>
-                                    ${updatesCount}
-                                </span>
-                                <span class="flex items-center gap-1">
-                                    <i class="ph ph-file"></i>
-                                    ${docsCount}
-                                </span>
-                            </div>
-                            <div class="flex items-center -space-x-1">
-                                ${assigned.slice(0, 2).map(p => `
-                                    <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-xs text-white font-medium border-2 border-white" title="${p}">${p.charAt(0).toUpperCase()}</div>
-                                `).join('')}
-                                ${assigned.length > 2 ? `
-                                    <div class="w-6 h-6 rounded-full bg-slate-400 flex items-center justify-center text-xs text-white font-medium border-2 border-white" title="${assigned.length - 2} kişi daha">+${assigned.length - 2}</div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            function render() {
-                const filtered = applyFilters();
-                mainContent.innerHTML = '';
-
-                if (currentView === 'kanban' || currentView === 'list') {
-                    renderKanbanOrList(filtered);
-                } else if (currentView === 'person') {
-                    renderPerson(filtered);
-                } else if (currentView === 'docs') {
-                    renderDocsView(filtered);
-                }
-                updateActiveFilterCount();
-            }
-
-            function renderKanbanOrList(filtered) {
-                if (currentView === 'kanban') {
-                    renderKanban(filtered);
-                } else {
-                    renderEnhancedList(filtered);
-                }
-            }
-
-            function renderKanban(filtered) {
-                const statuses = [...new Set(tasks.map(t => t['Mevcut Durum']))];
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'kanban-board max-w-none';
-
-                statuses.forEach(status => {
-                    const tasksInStatus = filtered.filter(t => t['Mevcut Durum'] === status);
-                    const col = document.createElement('div');
-                    col.className = 'kanban-column voyage-card p-6';
-                    col.innerHTML = `
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-lg font-semibold text-slate-900">${status}</h2>
-                            <span class="bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-sm font-medium">${tasksInStatus.length}</span>
-                        </div>
-                        <div class="space-y-4">
-                            ${tasksInStatus.map(createEnhancedTaskCard).join('') ||
-                        '<div class="text-center py-12 text-slate-500"><i class="ph ph-stack text-4xl mb-2 block"></i>Bu durumda görev yok</div>'}
-                        </div>
-                    `;
-                    wrapper.appendChild(col);
-                });
-
-                mainContent.innerHTML = '';
-                mainContent.appendChild(wrapper);
-            }
-
-            function renderEnhancedList(filtered) {
-                mainContent.innerHTML = `
-                    <div class="glass rounded-2xl overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-slate-800/50">
-                                    <tr>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Başlık</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Sorumlular</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Durum</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Öncelik</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Tetiklenme</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Onay Adımı</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Son Teslim</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Aktivite</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-700/50">
-                                    ${filtered.map(task => {
-                    const updatesCount = updates.filter(u => u['İş ID'] === task['İş ID']).length;
-                    const docsCount = documents.filter(d => d['İş ID'] === task['İş ID']).length;
-                    const notesCount = notes.filter(n => n['İş ID'] === task['İş ID']).length;
-
-                    return `
-                                        <tr class="hover:bg-slate-800/50 transition cursor-pointer" data-task-id="${task['İş ID']}">
-                                            <td class="px-6 py-4">
-                                                <div class="font-semibold text-slate-900 mb-1">${task.Başlık}</div>
-                                                <div class="text-xs text-slate-500">${task['İş ID']}</div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <div class="flex items-center -space-x-2">
-                                                    ${(task.Sorumlular ? task.Sorumlular.split(',').slice(0, 2).map(p => `
-                                                        <div class="avatar w-8 h-8 text-xs" title="${p.trim()}">${p.trim().charAt(0).toUpperCase()}</div>
-                                                    `).join('') : '<span class="text-slate-500">-</span>')}
-                                                </div>
-                                            </td>
-                                            <td class="px-6 py-4">
-                                                <span class="badge bg-blue-500/20 text-blue-300">${task['Mevcut Durum']}</span>
-                                            </td>
-                                            <td class="px-6 py-4">${getPriorityBadge(task.Öncelik) || '<span class="text-slate-500">-</span>'}</td>
-                                            <td class="px-6 py-4">
-                                                ${task['Tetiklenme Türü'] ? `<span class="badge bg-purple-500/20 text-purple-300">${task['Tetiklenme Türü']}</span>` : '<span class="text-slate-500">-</span>'}
-                                            </td>
-                                            <td class="px-6 py-4 text-slate-300 text-sm">${task['Aktif Onay Adımı'] || '-'}</td>
-                                            <td class="px-6 py-4 text-slate-300 text-sm">${task['Son Teslim Tarihi'] || '-'}</td>
-                                            <td class="px-6 py-4">
-                                                <div class="flex items-center gap-2 text-xs text-slate-500">
-                                                    <span title="Güncelleme">${updatesCount}📝</span>
-                                                    <span title="Not">${notesCount}📋</span>
-                                                    <span title="Belge">${docsCount}📄</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `;
-                }).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
-            function renderAnalytics(filtered) {
-                const byStatus = {};
-                const byPriority = {};
-                const byDepartment = {};
-                const byTriggerType = {};
-
-                filtered.forEach(task => {
-                    // Status distribution
-                    const status = task['Mevcut Durum'] || 'Bilinmiyor';
-                    byStatus[status] = (byStatus[status] || 0) + 1;
-
-                    // Priority distribution
-                    const priority = task.Öncelik || 'Belirtilmemiş';
-                    byPriority[priority] = (byPriority[priority] || 0) + 1;
-
-                    // Department distribution
-                    if (task['İlgili Departman(lar)']) {
-                        task['İlgili Departman(lar)'].split(',').forEach(d => {
-                            const dept = d.trim();
-                            byDepartment[dept] = (byDepartment[dept] || 0) + 1;
-                        });
-                    }
-
-                    // Trigger type distribution
-                    const triggerType = task['Tetiklenme Türü'] || 'Belirtilmemiş';
-                    byTriggerType[triggerType] = (byTriggerType[triggerType] || 0) + 1;
-                });
-
-                mainContent.innerHTML = `
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <!-- Status Distribution -->
-                        <div class="glass rounded-2xl p-6">
-                            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <i class="ph-bold ph-chart-pie text-cyan-500"></i>
-                                Durum Dağılımı
-                            </h3>
-                            <div class="space-y-3">
-                                ${Object.entries(byStatus).map(([status, count]) => {
-                    const percentage = ((count / filtered.length) * 100).toFixed(1);
-                    return `
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-slate-300">${status}</span>
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-32 bg-slate-700 rounded-full h-2">
-                                                    <div class="bg-blue-500 h-2 rounded-full" style="width: ${percentage}%"></div>
-                                                </div>
-                                                <span class="text-slate-900 font-semibold w-12 text-right">${count}</span>
-                                            </div>
-                                        </div>
-                                    `;
-                }).join('')}
-                            </div>
-                        </div>
-
-                        <!-- Priority Distribution -->
-                        <div class="glass rounded-2xl p-6">
-                            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <i class="ph-bold ph-warning-circle text-red-500"></i>
-                                Öncelik Dağılımı
-                            </h3>
-                            <div class="space-y-3">
-                                ${Object.entries(byPriority).map(([priority, count]) => {
-                    const percentage = ((count / filtered.length) * 100).toFixed(1);
-                    let color = 'bg-slate-500';
-                    if (priority.includes('Kritik')) color = 'bg-red-500';
-                    else if (priority.includes('Yüksek')) color = 'bg-orange-500';
-                    else if (priority.includes('Normal')) color = 'bg-blue-500';
-                    else if (priority.includes('Düşük')) color = 'bg-green-500';
-
-                    return `
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-slate-300">${priority}</span>
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-32 bg-slate-700 rounded-full h-2">
-                                                    <div class="${color} h-2 rounded-full" style="width: ${percentage}%"></div>
-                                                </div>
-                                                <span class="text-slate-900 font-semibold w-12 text-right">${count}</span>
-                                            </div>
-                                        </div>
-                                    `;
-                }).join('')}
-                            </div>
-                        </div>
-
-                        <!-- Department Distribution -->
-                        <div class="glass rounded-2xl p-6">
-                            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <i class="ph-bold ph-buildings text-teal-500"></i>
-                                Departman Dağılımı
-                            </h3>
-                            <div class="space-y-3 max-h-64 overflow-y-auto">
-                                ${Object.entries(byDepartment).sort((a, b) => b[1] - a[1]).map(([dept, count]) => {
-                    const percentage = ((count / filtered.length) * 100).toFixed(1);
-                    return `
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-slate-300 text-sm">${dept}</span>
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-24 bg-slate-700 rounded-full h-2">
-                                                    <div class="bg-teal-500 h-2 rounded-full" style="width: ${percentage}%"></div>
-                                                </div>
-                                                <span class="text-slate-900 font-semibold w-8 text-right text-sm">${count}</span>
-                                            </div>
-                                        </div>
-                                    `;
-                }).join('')}
-                            </div>
-                        </div>
-
-                        <!-- Trigger Type Distribution -->
-                        <div class="glass rounded-2xl p-6">
-                            <h3 class="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                                <i class="ph-bold ph-lightning text-purple-500"></i>
-                                Tetiklenme Türü
-                            </h3>
-                            <div class="space-y-3">
-                                ${Object.entries(byTriggerType).map(([type, count]) => {
-                    const percentage = ((count / filtered.length) * 100).toFixed(1);
-                    return `
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-slate-300">${type}</span>
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-32 bg-slate-700 rounded-full h-2">
-                                                    <div class="bg-purple-500 h-2 rounded-full" style="width: ${percentage}%"></div>
-                                                </div>
-                                                <span class="text-slate-900 font-semibold w-12 text-right">${count}</span>
-                                            </div>
-                                        </div>
-                                    `;
-                }).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            function renderUpdatesView(filtered) {
-                // Get all updates for filtered tasks
-                const filteredTaskIds = new Set(filtered.map(t => t['İş ID']));
-                const relevantUpdates = updates.filter(u => u['İş ID'] && filteredTaskIds.has(u['İş ID']))
-                    .sort((a, b) => parseCustomDate(b['Oluşturulma Tarihi']) - parseCustomDate(a['Oluşturulma Tarihi']));
-
-                mainContent.innerHTML = `
-                    <div class="voyage-card p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-3">
-                                <i class="ph-bold ph-clock-clockwise text-cyan-500"></i>
-                                Güncelleme Kayıtları
-                            </h2>
-                            <span class="bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-sm font-medium">${relevantUpdates.length} kayıt</span>
-                        </div>
-                        
-                        ${relevantUpdates.length > 0 ? `
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead class="bg-slate-50 border-b border-slate-200">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Tarih</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">İş ID</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Atayan</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Başlık</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Görev İçeriği</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Durum</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tetiklenme</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Öncelik</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Talep Eden</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Departman</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Son Mesaj</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksiyon</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Not</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-700/30">
-                                        ${relevantUpdates.map(update => {
-                    const task = tasks.find(t => t['İş ID'] === update['İş ID']);
-                    const updateDate = parseCustomDate(update['Oluşturulma Tarihi']);
-                    const isRecent = updateDate > new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-                    return `
-                                                <tr class="hover:bg-slate-50 transition-colors ${isRecent ? 'bg-cyan-50 border-l-4 border-cyan-400' : ''}">
-                                                    <td class="px-4 py-3 text-sm text-slate-900">
-                                                        ${updateDate ? updateDate.toLocaleString('tr-TR') : '-'}
-                                                        ${isRecent ? '<span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700">Yeni</span>' : ''}
-                                                    </td>
-                                                    <td class="px-4 py-3">
-                                                        <span class="font-mono text-sm text-indigo-400 cursor-pointer hover:underline" data-task-id="${update['İş ID']}" title="Görevi aç">
-                                                            ${update['İş ID']}
-                                                        </span>
-                                                        ${task ? `<div class="text-xs text-slate-500 mt-1">${task.Başlık}</div>` : ''}
-                                                    </td>
-                                                    <td class="px-4 py-3">
-                                                        <div class="flex items-center gap-2">
-                                                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-xs text-white font-medium">
-                                                                ${(update.Atayan || 'S').charAt(0).toUpperCase()}
-                                                            </div>
-                                                            <span class="text-sm text-slate-900 font-medium">${update.Atayan || 'Sistem'}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-900 max-w-xs">
-                                                        <div class="truncate" title="${update['Başlık'] || '-'}">${update['Başlık'] || '-'}</div>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-300 max-w-sm">
-                                                        <div class="line-clamp-2" title="${update['Görev İçeriği'] || '-'}">${update['Görev İçeriği'] || '-'}</div>
-                                                    </td>
-                                                    <td class="px-4 py-3">
-                                                        ${update['Mevcut Durum'] ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300">${update['Mevcut Durum']}</span>` : '-'}
-                                                    </td>
-                                                    <td class="px-4 py-3">
-                                                        ${update['Tetiklenme Türü'] ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">${update['Tetiklenme Türü']}</span>` : '-'}
-                                                    </td>
-                                                    <td class="px-4 py-3">
-                                                        ${getPriorityBadge(update.Öncelik) || '-'}
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-300 max-w-xs">
-                                                        <div class="truncate" title="${update['Talep Eden Makam'] || '-'}">${update['Talep Eden Makam'] || '-'}</div>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-300 max-w-xs">
-                                                        <div class="truncate" title="${update['İlgili Departman(lar)'] || '-'}">${update['İlgili Departman(lar)'] || '-'}</div>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-300 max-w-sm">
-                                                        <div class="line-clamp-2" title="${update['Son Mesaj Metni'] || '-'}">${update['Son Mesaj Metni'] || '-'}</div>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-300 max-w-sm">
-                                                        <div class="line-clamp-2" title="${update['Aksiyon İçeriği'] || '-'}">${update['Aksiyon İçeriği'] || '-'}</div>
-                                                    </td>
-                                                    <td class="px-4 py-3 text-sm text-slate-400 max-w-xs">
-                                                        <div class="line-clamp-2 italic" title="${update.Not || '-'}">${update.Not || '-'}</div>
-                                                    </td>
-                                                </tr>
-                                            `;
-                }).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ` : `
-                            <div class="text-center py-12">
-                                <i class="ph-bold ph-table text-5xl text-slate-700 mb-3"></i>
-                                <p class="text-slate-500">Henüz güncelleme kaydı yok</p>
-                            </div>
-                        `}
-                    </div>
-                `;
-            }
-            function openEnhancedModal(taskId) {
-                const task = tasks.find(t => t['İş ID'] === taskId);
-                if (!task) return;
-
-                document.getElementById('modal-title').textContent = task.Başlık;
-                document.getElementById('modal-id').textContent = task['İş ID'];
-                document.getElementById('modal-priority-badge').innerHTML = getPriorityBadge(task.Öncelik);
-                document.getElementById('modal-status-badge').innerHTML = `
-                    <span class="badge bg-blue-500/20 text-blue-300">
-                        <i class="ph ph-circle-wavy-check"></i>
-                        ${task['Mevcut Durum']}
-                    </span>
-                `;
-
-                // Show trigger type
-                if (task['Tetiklenme Türü']) {
-                    document.getElementById('modal-trigger-type').innerHTML = `
-                        <i class="ph ph-lightning"></i>
-                        ${task['Tetiklenme Türü']}
-                    `;
-                    document.getElementById('modal-trigger-type').classList.remove('hidden');
-                } else {
-                    document.getElementById('modal-trigger-type').classList.add('hidden');
-                }
-
-                // Enhanced details with all specified columns
-                const details = [
-                    { label: 'Görev İçeriği', value: task['Görev İçeriği'], icon: 'ph-text-align-left', full: true },
-                    { label: 'Talep Eden Makam', value: task['Talep Eden Makam'], icon: 'ph-buildings' },
-                    { label: 'Kaynak / Harici Paydaş', value: task['Kaynak / Harici Paydaş'], icon: 'ph-handshake' },
-                    { label: 'İlgili Departman(lar)', value: task['İlgili Departman(lar)'], icon: 'ph-users-three' },
-                    { label: 'Tetiklenme Türü', value: task['Tetiklenme Türü'], icon: 'ph-lightning' },
-                    { label: 'Görev Tipi', value: task['Görev Tipi'], icon: 'ph-tag' },
-                    { label: 'Öncelik', value: task.Öncelik, icon: 'ph-warning-circle' },
-                    { label: 'Aktif Onay Adımı', value: task['Aktif Onay Adımı'], icon: 'ph-check-circle' },
-                    { label: 'Son Teslim Tarihi', value: task['Son Teslim Tarihi'], icon: 'ph-calendar-check' },
-                    { label: 'İlgili Dokümanlar', value: task['İlgili Dokümanlar'], icon: 'ph-files' },
-                    { label: 'Son Mesaj Metni', value: task['Son Mesaj Metni'], icon: 'ph-chat-text', full: true },
-                    { label: 'Not', value: task.Not, icon: 'ph-note', full: true },
-                    { label: 'Oluşturulma Tarihi', value: task['Oluşturulma Tarihi'] ? new Date(task['Oluşturulma Tarihi']).toLocaleString('tr-TR') : '', icon: 'ph-clock' },
-                    { label: 'Mesaj ID', value: task['Mesaj ID'], icon: 'ph-hash' }
-                ];
-
-                document.getElementById('modal-details').innerHTML = details.filter(d => d.value).map(d => `
-                    <div class="info-row ${d.full ? 'col-span-2' : ''}">
-                        <div class="flex items-start gap-3">
-                            <i class="ph-bold ${d.icon} text-lg text-blue-400 mt-0.5"></i>
-                            <div class="flex-1">
-                                <div class="text-xs text-slate-500 font-medium mb-1">${d.label}</div>
-                                <div class="text-slate-900 text-sm ${d.full ? '' : 'font-semibold'}">${d.value}</div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
-                // Enhanced team section
-                const team = [];
-                if (task.Atayan) team.push({ role: 'Atayan', name: task.Atayan, icon: 'ph-user-plus' });
-                if (task.Sorumlular) {
-                    task.Sorumlular.split(',').forEach(p => {
-                        team.push({ role: 'Sorumlu', name: p.trim(), icon: 'ph-user-check' });
-                    });
-                }
-
-                document.getElementById('modal-team').innerHTML = `
-                    ${team.map(t => `
-                        <div class="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                            <div class="avatar">${t.name.charAt(0).toUpperCase()}</div>
-                            <div class="flex-1">
-                                <div class="text-slate-900 font-semibold text-sm">${t.name}</div>
-                                <div class="text-xs text-slate-500 flex items-center gap-1">
-                                    <i class="ph ${t.icon}"></i>
-                                    ${t.role}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                    
-                    ${task['Aktif Onay Adımı'] ? `
-                        <div class="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                            <div class="flex items-center gap-2 text-yellow-400 font-semibold text-sm mb-1">
-                                <i class="ph-bold ph-clock-countdown"></i>
-                                Aktif Onay Süreci
-                            </div>
-                            <div class="text-slate-900 text-sm">${task['Aktif Onay Adımı']}</div>
-                        </div>
-                    ` : ''}
-                    
-                    ${team.length === 0 ? '<p class="text-slate-500 text-sm">Ekip bilgisi yok</p>' : ''}
-                `;
-
-                // Render first tab
-                renderEnhancedTab('updates', taskId);
-
-                taskModal.classList.remove('hidden');
-                taskModal.classList.add('flex');
-            }
-            function renderEnhancedTab(type, taskId) {
-                const content = document.getElementById('tab-content');
-                const tabs = document.querySelectorAll('.tab-btn');
-
-                tabs.forEach(tab => {
-                    tab.classList.remove('active', 'text-slate-900');
-                    tab.classList.add('text-slate-600');
-                    if (tab.dataset.tab === type) {
-                        tab.classList.add('active', 'text-slate-900');
-                        tab.classList.remove('text-slate-600');
-                    }
-                });
-
-                if (type === 'updates') {
-                    const taskUpdates = updates.filter(u => u['İş ID'] === taskId)
-                        .sort((a, b) => new Date(b['Oluşturulma Tarihi']) - new Date(a['Oluşturulma Tarihi']));
-
-                    content.innerHTML = taskUpdates.length > 0 ? `
-                        <div class="miro-card overflow-hidden">
-                            <div class="overflow-x-auto">
-                                <table class="w-full">
-                                    <thead class="bg-slate-800/50 border-b border-slate-700/50">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tarih</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Atayan</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Başlık</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Görev İçeriği</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Durum</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tetiklenme</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Öncelik</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Talep Eden</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Departman</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Son Mesaj</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Aksiyon</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Not</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-slate-700/30">
-                                        ${taskUpdates.map(u => `
-                                            <tr class="hover:bg-slate-800/30 transition-colors">
-                                                <td class="px-4 py-3 text-sm text-slate-300">
-                                                    ${u['Oluşturulma Tarihi'] ? new Date(u['Oluşturulma Tarihi']).toLocaleString('tr-TR') : '-'}
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    <div class="flex items-center gap-2">
-                                                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs text-white font-medium">
-                                                            ${(u.Atayan || 'S').charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <span class="text-sm text-white font-medium">${u.Atayan || 'Sistem'}</span>
-                                                    </div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-white max-w-xs">
-                                                    <div class="truncate" title="${u['Başlık'] || '-'}">${u['Başlık'] || '-'}</div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-slate-300 max-w-sm">
-                                                    <div class="line-clamp-2" title="${u['Görev İçeriği'] || '-'}">${u['Görev İçeriği'] || '-'}</div>
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    ${u['Mevcut Durum'] ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300">${u['Mevcut Durum']}</span>` : '-'}
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    ${u['Tetiklenme Türü'] ? `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">${u['Tetiklenme Türü']}</span>` : '-'}
-                                                </td>
-                                                <td class="px-4 py-3">
-                                                    ${getPriorityBadge(u.Öncelik) || '-'}
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-slate-300 max-w-xs">
-                                                    <div class="truncate" title="${u['Talep Eden Makam'] || '-'}">${u['Talep Eden Makam'] || '-'}</div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-slate-300 max-w-xs">
-                                                    <div class="truncate" title="${u['İlgili Departman(lar)'] || '-'}">${u['İlgili Departman(lar)'] || '-'}</div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-slate-300 max-w-sm">
-                                                    <div class="line-clamp-2" title="${u['Son Mesaj Metni'] || '-'}">${u['Son Mesaj Metni'] || '-'}</div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-slate-300 max-w-sm">
-                                                    <div class="line-clamp-2" title="${u['Aksiyon İçeriği'] || '-'}">${u['Aksiyon İçeriği'] || '-'}</div>
-                                                </td>
-                                                <td class="px-4 py-3 text-sm text-slate-400 max-w-xs">
-                                                    <div class="line-clamp-2 italic" title="${u.Not || '-'}">${u.Not || '-'}</div>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    ` : '<div class="text-center py-12"><i class="ph-bold ph-table text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">Henüz güncelleme kaydı yok</p></div>';
-                }
-                else if (type === 'actions') {
-                    const taskNotes = notes.filter(n => n['İş ID'] === taskId)
-                        .sort((a, b) => new Date(b['Oluşturulma Tarihi']) - new Date(a['Oluşturulma Tarihi']));
-
-                    content.innerHTML = taskNotes.length > 0 ? `
-                        <div class="space-y-4">
-                            ${taskNotes.map(n => `
-                                <div class="glass rounded-xl p-5">
-                                    <div class="flex items-start gap-3 mb-3">
-                                        <i class="ph-bold ph-lightning text-xl text-purple-400"></i>
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-2 mb-2">
-                                                <span class="font-semibold text-white">${n.Atayan || 'Bilinmiyor'}</span>
-                                                <i class="ph ph-arrow-right text-slate-500"></i>
-                                                <span class="text-slate-300">${n.Atanan || 'Bilinmiyor'}</span>
-                                            </div>
-                                            <p class="text-slate-300 text-sm mb-2">${n['Görev İçeriği'] || 'Aksiyon içeriği yok'}</p>
-                                            <div class="text-xs text-slate-500">${new Date(n['Oluşturulma Tarihi']).toLocaleString('tr-TR')}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : '<div class="text-center py-12"><i class="ph-bold ph-lightning text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">Aksiyon kaydı bulunamadı</p></div>';
-                }
-                else if (type === 'docs') {
-                    const taskDocs = documents.filter(d => d['İş ID'] === taskId);
-
-                    content.innerHTML = taskDocs.length > 0 ? `
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            ${taskDocs.map(d => `
-                                <a href="${d.Link}" target="_blank" rel="noopener noreferrer" class="document-card p-5 block group">
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
-                                            <i class="ph-bold ph-file-arrow-down text-2xl text-white"></i>
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <h4 class="font-semibold text-white mb-1 truncate group-hover:text-blue-400 transition">${d.Başlık || 'Belge'}</h4>
-                                            <p class="text-xs text-slate-500 mb-2">${d.Gönderen || 'Bilinmiyor'} tarafından eklendi</p>
-                                            ${d['Oluşturulma Tarihi'] ? `
-                                                <p class="text-xs text-slate-600">${new Date(d['Oluşturulma Tarihi']).toLocaleString('tr-TR')}</p>
-                                            ` : ''}
-                                        </div>
-                                        <i class="ph-bold ph-arrow-square-out text-slate-500 group-hover:text-blue-400 transition"></i>
-                                    </div>
-                                </a>
-                            `).join('')}
-                        </div>
-                    ` : '<div class="text-center py-12"><i class="ph-bold ph-files text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">Belge bulunamadı</p></div>';
-                }
-                else if (type === 'chain') {
-                    const taskChain = kayitZinciri.filter(k => k['İş ID'] === taskId)
-                        .sort((a, b) => new Date(b['Oluşturulma Tarihi']) - new Date(a['Oluşturulma Tarihi']));
-
-                    content.innerHTML = taskChain.length > 0 ? `
-                        <div class="space-y-4">
-                            <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
-                                <h4 class="text-blue-400 font-semibold mb-2 flex items-center gap-2">
-                                    <i class="ph-bold ph-link"></i>
-                                    Kayıt Zinciri Analizi
-                                </h4>
-                                <p class="text-slate-300 text-sm">Bu görev için ${taskChain.length} kayıt zinciri girişi bulundu.</p>
-                            </div>
-                            ${taskChain.map(k => `
-                                <div class="glass rounded-xl p-4">
-                                    <div class="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span class="text-slate-500">Mesaj ID:</span>
-                                            <span class="text-white font-mono ml-2">${k['Mesaj ID'] || '-'}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-slate-500">İş ID:</span>
-                                            <span class="text-white font-mono ml-2">${k['İş ID'] || '-'}</span>
-                                        </div>
-                                        ${k['Yanıtlanan Mesaj ID'] ? `
-                                            <div class="col-span-2">
-                                                <span class="text-slate-500">Yanıtlanan Mesaj:</span>
-                                                <span class="text-white font-mono ml-2">${k['Yanıtlanan Mesaj ID']}</span>
-                                            </div>
-                                        ` : ''}
-                                        ${k['Oluşturulma Tarihi'] ? `
-                                            <div class="col-span-2">
-                                                <span class="text-slate-500">Tarih:</span>
-                                                <span class="text-white ml-2">${new Date(k['Oluşturulma Tarihi']).toLocaleString('tr-TR')}</span>
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : '<div class="text-center py-12"><i class="ph-bold ph-link text-5xl text-slate-700 mb-3"></i><p class="text-slate-500">Kayıt zinciri bulunamadı</p></div>';
-                }
-            }
-            // --- EVENT LISTENERS ---
-            if (searchInput) {
-                searchInput.addEventListener('input', render);
-            }
-
-            // Old filter listeners removed - now using filter menu
-
-            // Clear filters button removed - now handled in filter menu
-
-            // Enhanced sync functionality
-            syncBtn.addEventListener('click', async () => {
-                syncBtn.classList.add('sync-indicator');
-                syncBtn.innerHTML = '<i class="ph-bold ph-spinner text-xl text-blue-400 animate-spin"></i>';
-
-                try {
-                    await fetchData();
-                    syncBtn.innerHTML = '<i class="ph-bold ph-check text-xl text-green-400"></i>';
-                    setTimeout(() => {
-                        syncBtn.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-xl text-green-400"></i>';
-                        syncBtn.classList.remove('sync-indicator');
-                    }, 2000);
-                } catch (error) {
-                    syncBtn.innerHTML = '<i class="ph-bold ph-x text-xl text-red-400"></i>';
-                    setTimeout(() => {
-                        syncBtn.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-xl text-green-400"></i>';
-                        syncBtn.classList.remove('sync-indicator');
-                    }, 2000);
+                })
+            );
+
+            loadingProgress.textContent = 'Veriler işleniyor...';
+            const results = await Promise.all(promises);
+            results.forEach(({ key, data }) => {
+                switch (key) {
+                    case 'gorevler': allTasks = data.filter(t => t['İş ID']); break; // Store all tasks
+                    case 'belgeler': documents = data; break;
+                    case 'kayitZinciri': kayitZinciri = data; break;
                 }
             });
 
-            // Old view button listeners removed - now handled individually above
+            loadingProgress.textContent = 'Veriler eşleştiriliyor...';
+            await processDataWithMatching();
 
-            mainContent.addEventListener('click', (e) => {
-                const card = e.target.closest('[data-task-id]');
-                if (card) openEnhancedModal(card.dataset.taskId);
-            });
+            loadingProgress.textContent = 'Arayüz hazırlanıyor...';
+            setupFilters(); // Filtreleri doldur
+            applyAndRender(); // Filtreleri uygula ve ilk render'ı yap
 
-            closeModalBtn.addEventListener('click', () => {
-                taskModal.classList.add('hidden');
-                taskModal.classList.remove('flex');
-            });
+            lastSyncTime = new Date();
+            updateSyncIndicator();
 
-            taskModal.addEventListener('click', (e) => {
-                if (e.target === taskModal) {
-                    taskModal.classList.add('hidden');
-                    taskModal.classList.remove('flex');
-                }
-            });
+        } catch (error) {
+            console.error('Data fetch error:', error);
+            loadingProgress.innerHTML = `<span class="text-red-500">❌ Veri yüklenemedi: ${error.message}</span>`;
+            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 3000); // Hide after error
+        } finally {
+            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 500); // Hide after success
+        }
+    }
 
-            document.getElementById('modal-tabs').addEventListener('click', e => {
-                const tabButton = e.target.closest('.tab-btn');
-                if (tabButton) {
-                    const tabType = tabButton.dataset.tab;
-                    const taskId = document.getElementById('modal-id').textContent;
-                    renderEnhancedTab(tabType, taskId);
-                }
-            });
-
-            // Auto-refresh every 5 minutes
-            setInterval(async () => {
-                try {
-                    await fetchData();
-                    console.log('Auto-refresh completed');
-                } catch (error) {
-                    console.error('Auto-refresh failed:', error);
-                }
-            }, 5 * 60 * 1000);
-
-            // Eksik fonksiyonlar
-            function openEnhancedModal(taskId) {
-                const task = tasks.find(t => t['İş ID'] === taskId);
-                if (!task) return;
-
-                document.getElementById('modal-title').textContent = task.Başlık;
-                document.getElementById('modal-id').textContent = task['İş ID'];
-                document.getElementById('modal-priority-badge').innerHTML = getPriorityBadge(task.Öncelik);
-                document.getElementById('modal-status-badge').innerHTML = `<span class="badge bg-blue-500/20 text-blue-300"><i class="ph ph-circle-wavy-check"></i>${task['Mevcut Durum']}</span>`;
-
-                // Show trigger type
-                if (task['Tetiklenme Türü']) {
-                    document.getElementById('modal-trigger-type').innerHTML = `<i class="ph ph-lightning"></i>${task['Tetiklenme Türü']}`;
-                    document.getElementById('modal-trigger-type').classList.remove('hidden');
-                } else {
-                    document.getElementById('modal-trigger-type').classList.add('hidden');
-                }
-
-                // Enhanced details
-                const details = [
-                    { label: 'Görev İçeriği', value: task['Görev İçeriği'], icon: 'ph-text-align-left', full: true },
-                    { label: 'Talep Eden Makam', value: task['Talep Eden Makam'], icon: 'ph-buildings' },
-                    { label: 'İlgili Departman(lar)', value: task['İlgili Departman(lar)'], icon: 'ph-users-three' },
-                    { label: 'Tetiklenme Türü', value: task['Tetiklenme Türü'], icon: 'ph-lightning' },
-                    { label: 'Öncelik', value: task.Öncelik, icon: 'ph-warning-circle' },
-                    { label: 'Son Teslim Tarihi', value: task['Son Teslim Tarihi'], icon: 'ph-calendar-check' }
-                ];
-
-                document.getElementById('modal-details').innerHTML = details.filter(d => d.value).map(d => `
-                        <div class="info-row ${d.full ? 'col-span-2' : ''}">
-                            <div class="flex items-start gap-3">
-                                <i class="ph-bold ${d.icon} text-lg text-blue-400 mt-0.5"></i>
-                                <div class="flex-1">
-                                    <div class="text-xs text-slate-500 font-medium mb-1">${d.label}</div>
-                                    <div class="text-slate-900 text-sm ${d.full ? '' : 'font-semibold'}">${d.value}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-
-                // Team section
-                const team = [];
-                if (task.Atayan) team.push({ role: 'Atayan', name: task.Atayan, icon: 'ph-user-plus' });
-                if (task.Sorumlular) {
-                    task.Sorumlular.split(',').forEach(p => {
-                        team.push({ role: 'Sorumlu', name: p.trim(), icon: 'ph-user-check' });
-                    });
-                }
-
-                document.getElementById('modal-team').innerHTML = `
-                        ${team.map(t => `
-                            <div class="flex items-center gap-3 p-3 bg-slate-100 rounded-lg">
-                                <div class="avatar">${t.name.charAt(0).toUpperCase()}</div>
-                                <div class="flex-1">
-                                    <div class="text-slate-900 font-semibold text-sm">${t.name}</div>
-                                    <div class="text-xs text-slate-500 flex items-center gap-1">
-                                        <i class="ph ${t.icon}"></i>${t.role}
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                        ${team.length === 0 ? '<p class="text-slate-500 text-sm">Ekip bilgisi yok</p>' : ''}
-                    `;
-
-                // Render first tab
-                renderEnhancedTab('updates', taskId);
-                taskModal.classList.remove('hidden');
-                taskModal.classList.add('flex');
-            }
-
-            function renderEnhancedTab(type, taskId) {
-                const content = document.getElementById('tab-content');
-                const tabs = document.querySelectorAll('.tab-btn');
-
-                tabs.forEach(tab => {
-                    tab.classList.remove('active', 'text-slate-900');
-                    tab.classList.add('text-slate-400');
-                    if (tab.dataset.tab === type) {
-                        tab.classList.add('active', 'text-slate-900');
-                        tab.classList.remove('text-slate-400');
-                    }
-                });
-
-                if (type === 'updates') {
-                    const taskUpdates = updates.filter(u => u['İş ID'] === taskId)
-                        .sort((a, b) => parseCustomDate(b['Oluşturulma Tarihi']) - parseCustomDate(a['Oluşturulma Tarihi']));
-
-                    content.innerHTML = taskUpdates.length > 0 ? `
-                            <div class="space-y-4">
-                                ${taskUpdates.map(u => `
-                                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                        <div class="flex items-start justify-between mb-2">
-                                            <span class="text-sm font-medium text-blue-600">${u['Mevcut Durum'] || 'Durum yok'}</span>
-                                            <span class="text-xs text-slate-500">${parseCustomDate(u['Oluşturulma Tarihi'])?.toLocaleString('tr-TR') || '-'}</span>
-                                        </div>
-                                        <p class="text-sm text-slate-600">${u['Görev İçeriği'] || u['Son Mesaj Metni'] || u.Not || 'Detay yok'}</p>
-                                        ${u.Atayan ? `<p class="text-xs text-slate-500 mt-2">Atayan: ${u.Atayan}</p>` : ''}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="text-center py-12"><i class="ph-bold ph-table text-5xl text-slate-400 mb-3"></i><p class="text-slate-500">Henüz güncelleme kaydı yok</p></div>';
-                } else if (type === 'actions') {
-                    const taskNotes = notes.filter(n => n['İş ID'] === taskId);
-                    content.innerHTML = taskNotes.length > 0 ? `
-                            <div class="space-y-4">
-                                ${taskNotes.map(n => `
-                                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                        <p class="text-sm text-slate-600">${n['Görev İçeriği'] || 'Aksiyon içeriği yok'}</p>
-                                        <div class="text-xs text-slate-500 mt-2">${parseCustomDate(n['Oluşturulma Tarihi'])?.toLocaleString('tr-TR') || '-'}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="text-center py-12"><i class="ph-bold ph-lightning text-5xl text-slate-400 mb-3"></i><p class="text-slate-500">Aksiyon kaydı bulunamadı</p></div>';
-                } else if (type === 'docs') {
-                    const taskDocs = documents.filter(d => d['İş ID'] === taskId);
-                    content.innerHTML = taskDocs.length > 0 ? `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                ${taskDocs.map(d => `
-                                    <a href="${d.Link}" target="_blank" rel="noopener noreferrer" class="bg-slate-50 rounded-lg p-4 border border-slate-200 hover:bg-blue-50 hover:border-blue-300 transition block">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center">
-                                                <i class="ph ph-file-arrow-down text-lg text-blue-600"></i>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <h4 class="font-medium text-slate-700 text-sm truncate">${d.Başlık || 'Belge'}</h4>
-                                                <p class="text-xs text-slate-500">${d.Gönderen || 'Bilinmiyor'}</p>
-                                            </div>
-                                            <i class="ph ph-arrow-square-out text-slate-400"></i>
-                                        </div>
-                                    </a>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="text-center py-12"><i class="ph-bold ph-files text-5xl text-slate-400 mb-3"></i><p class="text-slate-500">Belge bulunamadı</p></div>';
-                } else if (type === 'chain') {
-                    const taskChain = kayitZinciri.filter(k => k['İş ID'] === taskId);
-                    content.innerHTML = taskChain.length > 0 ? `
-                            <div class="space-y-4">
-                                ${taskChain.map(k => `
-                                    <div class="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                                        <div class="grid grid-cols-2 gap-4 text-sm">
-                                            <div><span class="text-slate-500">Mesaj ID:</span> <span class="font-mono ml-2">${k['Mesaj ID'] || '-'}</span></div>
-                                            <div><span class="text-slate-500">İş ID:</span> <span class="font-mono ml-2">${k['İş ID'] || '-'}</span></div>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : '<div class="text-center py-12"><i class="ph-bold ph-link text-5xl text-slate-400 mb-3"></i><p class="text-slate-500">Kayıt zinciri bulunamadı</p></div>';
-                }
-            }
-
-            // Missing view functions
-            function renderPerson(filtered) {
-                const tasksByPerson = {};
-                filtered.forEach(task => {
-                    if (task.Sorumlular) {
-                        task.Sorumlular.split(',').forEach(p => {
-                            const name = p.trim();
-                            if (!tasksByPerson[name]) tasksByPerson[name] = [];
-                            tasksByPerson[name].push(task);
-                        });
-                    }
-                });
-
-                mainContent.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${Object.keys(tasksByPerson).sort().map(person => `
-                            <div class="voyage-card p-6">
-                                <div class="flex items-center gap-4 mb-6">
-                                    <div class="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center text-xl text-white font-bold border-4 border-white shadow-md">${person.charAt(0).toUpperCase()}</div>
-                                    <div>
-                                        <h2 class="text-lg font-semibold text-slate-900">${person}</h2>
-                                        <p class="text-sm text-slate-600">${tasksByPerson[person].length} aktif görev</p>
-                                    </div>
-                                </div>
-                                <div class="space-y-3 max-h-80 overflow-y-auto pr-2">
-                                    ${tasksByPerson[person].map(createEnhancedTaskCard).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ${Object.keys(tasksByPerson).length === 0 ? `
-                        <div class="text-center py-16 text-slate-500">
-                            <i class="ph ph-users-three text-5xl mb-3 block"></i>
-                            Filtrelere uygun sorumlu kişi bulunamadı.
-                        </div>
-                    ` : ''}
-                `;
-            }
-
-            function renderDocsView(filteredTasks) {
-                const docsByTask = {};
-                const filteredTaskIds = new Set(filteredTasks.map(t => t['İş ID']));
-
-                documents.forEach(doc => {
-                    if (doc['İş ID'] && filteredTaskIds.has(doc['İş ID'])) {
-                        if (!docsByTask[doc['İş ID']]) {
-                            const task = tasks.find(t => t['İş ID'] === doc['İş ID']);
-                            docsByTask[doc['İş ID']] = {
-                                title: task ? task.Başlık : doc['İş ID'],
-                                docs: []
-                            };
-                        }
-                        docsByTask[doc['İş ID']].docs.push(doc);
-                    }
-                });
-
-                mainContent.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${Object.keys(docsByTask).map(taskId => `
-                            <div class="voyage-card p-6"> 
-                                <h2 class="text-lg font-semibold text-slate-800 mb-4">${docsByTask[taskId].title}</h2>
-                                <div class="space-y-3">
-                                    ${docsByTask[taskId].docs.map(doc => `
-                                        <a href="${doc.Link}" target="_blank" rel="noopener noreferrer" 
-                                           class="document-card bg-white p-4 block group rounded-lg border border-slate-200 hover:bg-blue-50 hover:border-blue-300">
-                                            <div class="flex items-center gap-3">
-                                                <div class="w-8 h-8 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                     <i class="ph ph-file-arrow-down text-lg text-blue-600"></i>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <h4 class="font-medium text-slate-700 text-sm truncate group-hover:text-blue-600 transition">${doc.Başlık || 'Belge'}</h4>
-                                                    <p class="text-xs text-slate-500">${doc.Gönderen || 'Bilinmiyor'}</p>
-                                                </div>
-                                                <i class="ph ph-arrow-square-out text-slate-400 group-hover:text-blue-500 transition"></i>
-                                            </div>
-                                        </a>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                     ${Object.keys(docsByTask).length === 0 ? `
-                        <div class="text-center py-16 text-slate-500">
-                            <i class="ph ph-files text-5xl mb-3 block"></i>
-                            Filtrelere uygun belge bulunamadı.
-                        </div>
-                     ` : ''}
-                `;
-            }
-
-            function updateActiveFilterCount() {
-                const activeFilters = [
-                    document.getElementById('filter-talepEden')?.value,
-                    document.getElementById('filter-kaynak')?.value,
-                    document.getElementById('filter-ilgiliDepartman')?.value,
-                    document.getElementById('filter-tetiklenmeTuru')?.value,
-                    document.getElementById('filter-gorevTipi')?.value,
-                    document.getElementById('filter-oncelik')?.value,
-                    document.getElementById('filter-mevcutDurum')?.value,
-                    document.getElementById('filter-sorumlu')?.value
-                ].filter(Boolean).length;
-
-                const activeFilterCountSpan = document.getElementById('active-filter-count');
-                if (activeFilterCountSpan) {
-                    if (activeFilters > 0) {
-                        activeFilterCountSpan.textContent = `${activeFilters} Aktif`;
-                        activeFilterCountSpan.classList.remove('hidden');
-                    } else {
-                        activeFilterCountSpan.classList.add('hidden');
-                    }
-                }
-            }
-
-            function openFilterMenu() {
-                const filterMenuBackdrop = document.getElementById('filter-menu-backdrop');
-                const filterMenu = document.getElementById('filter-menu');
-                if (filterMenuBackdrop && filterMenu) {
-                    filterMenuBackdrop.classList.remove('hidden');
-                    filterMenu.classList.add('open');
-                    setTimeout(() => filterMenuBackdrop.classList.add('opacity-100'), 10);
-                }
-            }
-
-            function closeFilterMenu() {
-                const filterMenuBackdrop = document.getElementById('filter-menu-backdrop');
-                const filterMenu = document.getElementById('filter-menu');
-                if (filterMenuBackdrop && filterMenu) {
-                    filterMenuBackdrop.classList.remove('opacity-100');
-                    filterMenu.classList.remove('open');
-                    setTimeout(() => filterMenuBackdrop.classList.add('hidden'), 300);
-                }
-            }
-
-            // Add missing event listeners
-            const openFilterBtn = document.getElementById('open-filter-btn');
-            const closeFilterBtn = document.getElementById('close-filter-btn');
-            const filterMenuBackdrop = document.getElementById('filter-menu-backdrop');
-            const resetFiltersBtn = document.getElementById('reset-filters-btn');
-            const applyFiltersBtn = document.getElementById('apply-filters-btn');
-            const viewToggleKanban = document.getElementById('view-toggle-kanban');
-            const viewToggleList = document.getElementById('view-toggle-list');
-            const viewPersonBtn = document.getElementById('view-person');
-            const viewDocsBtn = document.getElementById('view-docs');
-
-            if (openFilterBtn) {
-                openFilterBtn.addEventListener('click', openFilterMenu);
-            }
-
-            if (closeFilterBtn) {
-                closeFilterBtn.addEventListener('click', closeFilterMenu);
-            }
-
-            if (filterMenuBackdrop) {
-                filterMenuBackdrop.addEventListener('click', closeFilterMenu);
-            }
-
-            if (resetFiltersBtn) {
-                resetFiltersBtn.addEventListener('click', () => {
-                    document.querySelectorAll('#filter-menu select').forEach(select => select.value = '');
-                    render();
-                    updateActiveFilterCount();
-                });
-            }
-
-            if (applyFiltersBtn) {
-                applyFiltersBtn.addEventListener('click', () => {
-                    render();
-                    updateActiveFilterCount();
-                    closeFilterMenu();
-                });
-            }
-
-            // View toggle event listeners
-            if (viewToggleKanban) {
-                viewToggleKanban.addEventListener('click', () => {
-                    currentView = 'kanban';
-                    viewToggleKanban.classList.add('text-blue-700', 'bg-white', 'shadow-sm');
-                    viewToggleKanban.classList.remove('text-slate-600');
-                    if (viewToggleList) {
-                        viewToggleList.classList.add('text-slate-600');
-                        viewToggleList.classList.remove('text-blue-700', 'bg-white', 'shadow-sm');
-                    }
-                    render();
-                });
-            }
-
-            if (viewToggleList) {
-                viewToggleList.addEventListener('click', () => {
-                    currentView = 'list';
-                    viewToggleList.classList.add('text-blue-700', 'bg-white', 'shadow-sm');
-                    viewToggleList.classList.remove('text-slate-600');
-                    if (viewToggleKanban) {
-                        viewToggleKanban.classList.add('text-slate-600');
-                        viewToggleKanban.classList.remove('text-blue-700', 'bg-white', 'shadow-sm');
-                    }
-                    render();
-                });
-            }
-
-            if (viewPersonBtn) {
-                viewPersonBtn.addEventListener('click', () => {
-                    currentView = 'person';
-                    render();
-                });
-            }
-
-            if (viewDocsBtn) {
-                viewDocsBtn.addEventListener('click', () => {
-                    currentView = 'docs';
-                    render();
-                });
-            }
-
-            // --- INITIALIZATION ---
-            console.log('Starting application...');
-            fetchData();
+    async function processDataWithMatching() {
+        const messageToJobMap = new Map();
+        kayitZinciri.forEach(row => {
+            if (row['İş ID'] && row['Mesaj ID']) messageToJobMap.set(row['Mesaj ID'], row['İş ID']);
         });
-    </script>
-    </body>
 
+        documents = documents.map(row => {
+             if (!row['İş ID']) {
+                 let jobId = messageToJobMap.get(row['Mesaj ID']) || messageToJobMap.get(row['Yanıtlanan Mesaj ID']);
+                 if (jobId) row['İş ID'] = jobId;
+             }
+             return row;
+        });
+
+        // Extract unique people and departments from all tasks
+        people.clear();
+        departments.clear();
+        allTasks.forEach(task => {
+            if (task.Sorumlular) task.Sorumlular.split(',').forEach(p => p.trim() && people.add(p.trim()));
+            if (task['İlgili Departman(lar)']) task['İlgili Departman(lar)'].split(',').forEach(d => d.trim() && departments.add(d.trim()));
+        });
+    }
+
+    // --- Filtreleme ---
+    function setupFilters() {
+        const filtersData = {
+            'Talep Eden Makam': new Set(), 'Kaynak / Harici Paydaş': new Set(),
+            'İlgili Departman(lar)': new Set(), 'Tetiklenme Türü': new Set(),
+            'Görev Tipi': new Set(), 'Öncelik': new Set(),
+            'Mevcut Durum': new Set(), 'Sorumlular': new Set()
+        };
+
+        allTasks.forEach(task => {
+            Object.keys(filtersData).forEach(key => {
+                if (task[key]) {
+                    const value = String(task[key]).trim();
+                    if (!value) return;
+                    if (['Sorumlular', 'İlgili Departman(lar)', 'Görev Tipi'].includes(key)) {
+                        value.split(',').forEach(val => val.trim() && filtersData[key].add(val.trim()));
+                    } else {
+                        filtersData[key].add(value);
+                    }
+                }
+            });
+        });
+
+        Object.keys(filtersData).forEach(key => {
+            const sortedValues = Array.from(filtersData[key]).sort((a, b) => a.localeCompare(b, 'tr'));
+            let selectId = '';
+            // Map keys to select IDs correctly
+            switch (key) {
+                case 'Talep Eden Makam': selectId = 'filter-talepEden'; break;
+                case 'Kaynak / Harici Paydaş': selectId = 'filter-kaynak'; break;
+                case 'İlgili Departman(lar)': selectId = 'filter-ilgiliDepartman'; break;
+                case 'Tetiklenme Türü': selectId = 'filter-tetiklenmeTuru'; break;
+                case 'Görev Tipi': selectId = 'filter-gorevTipi'; break;
+                case 'Öncelik': selectId = 'filter-oncelik'; break;
+                case 'Mevcut Durum': selectId = 'filter-mevcutDurum'; break;
+                case 'Sorumlular': selectId = 'filter-sorumlu'; break;
+            }
+            if (selectId) populateFilterSelect(selectId, sortedValues, `Tüm ${key}`);
+        });
+    }
+
+
+    function populateFilterSelect(selectId, optionsArray, defaultText) {
+        const selectElement = document.getElementById(selectId);
+        if (!selectElement) return;
+        selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+        optionsArray.forEach(option => {
+            if (typeof option === 'string' && option.trim()) {
+                selectElement.innerHTML += `<option value="${option}">${option}</option>`;
+            }
+        });
+    }
+
+    function getActiveFilters() {
+        const filters = {};
+        if(filterMenu) { // Check if filterMenu exists
+            filters.talepEden = filterMenu.querySelector('#filter-talepEden')?.value || '';
+            filters.kaynak = filterMenu.querySelector('#filter-kaynak')?.value || '';
+            filters.ilgiliDepartman = filterMenu.querySelector('#filter-ilgiliDepartman')?.value || '';
+            filters.tetiklenmeTuru = filterMenu.querySelector('#filter-tetiklenmeTuru')?.value || '';
+            filters.gorevTipi = filterMenu.querySelector('#filter-gorevTipi')?.value || '';
+            filters.oncelik = filterMenu.querySelector('#filter-oncelik')?.value || '';
+            filters.mevcutDurum = filterMenu.querySelector('#filter-mevcutDurum')?.value || '';
+            filters.sorumlu = filterMenu.querySelector('#filter-sorumlu')?.value || '';
+        }
+        filters.search = searchInput ? searchInput.value.toLowerCase() : '';
+        return filters;
+    }
+
+    function applyFilters(tasksToFilter = allTasks, filters = getActiveFilters()) {
+        return tasksToFilter.filter(task => {
+             if (!task || !task['İş ID']) return false;
+
+             const searchMatch = !filters.search || Object.values(task).some(v => String(v).toLowerCase().includes(filters.search));
+             const makamMatch = !filters.talepEden || task['Talep Eden Makam'] === filters.talepEden;
+             const kaynakMatch = !filters.kaynak || task['Kaynak / Harici Paydaş'] === filters.kaynak;
+             const deptMatch = !filters.ilgiliDepartman || (task['İlgili Departman(lar)'] && String(task['İlgili Departman(lar)']).includes(filters.ilgiliDepartman));
+             const tetiklenmeMatch = !filters.tetiklenmeTuru || task['Tetiklenme Türü'] === filters.tetiklenmeTuru;
+             const gorevTipiMatch = !filters.gorevTipi || (task['Görev Tipi'] && String(task['Görev Tipi']).includes(filters.gorevTipi));
+             const oncelikMatch = !filters.oncelik || task['Öncelik'] === filters.oncelik;
+             const durumMatch = !filters.mevcutDurum || task['Mevcut Durum'] === filters.mevcutDurum;
+             const sorumluMatch = !filters.sorumlu || (task.Sorumlular && String(task.Sorumlular).includes(filters.sorumlu));
+
+             return searchMatch && makamMatch && kaynakMatch && deptMatch && tetiklenmeMatch && gorevTipiMatch && oncelikMatch && durumMatch && sorumluMatch;
+        });
+    }
+
+    function updateActiveFilterCount() {
+        const filters = getActiveFilters();
+        // Count active filters excluding the search term
+        const count = Object.keys(filters).filter(key => key !== 'search' && filters[key]).length;
+        const countElement = document.getElementById('active-filter-count');
+        if (countElement) {
+            if (count > 0) {
+                countElement.textContent = `${count} Aktif`;
+                countElement.classList.remove('hidden');
+            } else {
+                countElement.classList.add('hidden');
+            }
+        }
+    }
+
+    // --- Render Fonksiyonları ---
+    function applyAndRender() {
+        const filteredTasks = applyFilters();
+        render(filteredTasks);
+        updateActiveFilterCount();
+    }
+
+    function render(filteredTasks) {
+        if (!mainContent) return;
+        mainContent.innerHTML = ''; // Clear previous content
+
+        setActiveViewButton(getViewButtonId(currentView)); // Update active button
+
+        // Detay görünümünde miyiz kontrol et
+        if (currentGroupDetail) {
+            renderGroupDetailView(currentGroupDetail.name, currentGroupDetail.type, filteredTasks, currentGroupDetail.filter);
+        } else {
+            // Ana görünümleri render et
+            switch (currentView) {
+                case 'kanban': renderKanban(filteredTasks); break;
+                case 'list': renderEnhancedList(filteredTasks); break;
+                case 'grouping': renderGroupingView(filteredTasks); break;
+                case 'docs': renderDocsView(filteredTasks); break;
+                default: mainContent.innerHTML = `<div class="text-center py-10 text-slate-500">Bilinmeyen görünüm: ${currentView}</div>`;
+            }
+        }
+    }
+
+
+    // --- Kart Oluşturma ---
+    function createEnhancedTaskCard(task) {
+        if (!task || !task['İş ID']) return ''; // Geçersiz görevi atla
+
+        const assigned = task.Sorumlular ? task.Sorumlular.split(',').map(p => p.trim()).filter(Boolean) : [];
+        const docsCount = documents.filter(d => d['İş ID'] === task['İş ID']).length;
+
+        const renderField = (label, value, iconClass, options = {}) => {
+            const displayValue = value && String(value).trim();
+            if (!displayValue) return ''; // Değer yoksa veya boşsa gösterme
+
+            let content = '';
+            const { isBadge = false, badgeType = '', isMulti = false, isDate = false, isStrong = true } = options;
+
+            if (isBadge) {
+                let badgeClass = '';
+                 // Öncelik ve Durum için özel badge fonksiyonlarını kullan
+                if (label === 'Öncelik') return getPriorityBadge(value, true);
+                if (label === 'Mevcut Durum') return getStatusBadge(value, true);
+                // Diğer badge'ler
+                switch (badgeType) {
+                    case 'trigger': badgeClass = 'badge-trigger'; break;
+                    case 'department': badgeClass = 'badge-department'; break;
+                    case 'type': badgeClass = 'bg-sky-100 text-sky-700 border border-sky-200'; break;
+                    default: badgeClass = 'bg-slate-100 text-slate-600 border border-slate-300';
+                }
+                 content = `<span class="badge ${badgeClass} !py-0.5 !px-2">${displayValue}</span>`;
+            } else if (isMulti) {
+                const items = displayValue.split(',').map(item => item.trim()).filter(Boolean);
+                let itemBadges = items.map(item => {
+                     let itemBadgeClass = '';
+                     if (label === 'İlgili Departman(lar)') itemBadgeClass = 'badge-department';
+                     // Add more types if needed
+                     else itemBadgeClass = 'bg-gray-100 text-gray-700 border border-gray-200';
+                     return `<span class="badge ${itemBadgeClass} !py-0.5 !px-2 mr-1">${item}</span>`;
+                }).join('');
+                 content = `<span>${itemBadges}</span>`;
+            } else {
+                 const textContent = isDate ? (parseCustomDate(displayValue)?.toLocaleDateString('tr-TR') || displayValue) : displayValue;
+                 content = isStrong ? `<span class="line-clamp-1">${label ? label + ': ' : ''}<strong>${textContent}</strong></span>`
+                                    : `<span class="line-clamp-1">${label ? label + ': ' : ''}${textContent}</span>`;
+            }
+
+            const iconColor = (label === 'Son Teslim Tarihi' && displayValue) ? 'text-red-500' : 'text-slate-400';
+
+            return `<div class="card-field"><i class="ph ${iconClass} ${iconColor}"></i>${content}</div>`;
+        };
+
+
+        return `
+        <div class="voyage-card p-4 cursor-pointer transition-all duration-200 flex flex-col justify-between h-full ${getPriorityClass(task.Öncelik)}" data-task-id="${task['İş ID']}">
+            <div>
+                <div class="flex items-start justify-between mb-2">
+                    <h3 class="font-semibold text-slate-800 text-sm leading-tight flex-1 pr-2 line-clamp-2">${task.Başlık || 'Başlıksız Görev'}</h3>
+                    ${renderField('Öncelik', task.Öncelik, '', { isBadge: true })}
+                </div>
+
+                ${task['Görev İçeriği'] ? `<p class="text-xs text-slate-600 mb-3 line-clamp-2 leading-relaxed">${task['Görev İçeriği']}</p>` : ''}
+
+                <div class="space-y-1 mb-3 text-xs">
+                    ${renderField('', task['Mevcut Durum'], '', { isBadge: true, badgeType: 'status' })}
+                    ${renderField('Talep Eden', task['Talep Eden Makam'], 'ph-buildings', { isStrong: false})}
+                    ${renderField('Kaynak', task['Kaynak / Harici Paydaş'], 'ph-link', { isStrong: false })}
+                    ${renderField('Departman', task['İlgili Departman(lar)'], 'ph-users-three', { isMulti: true })}
+                    ${renderField('', task['Tetiklenme Türü'], 'ph-sparkle', { isBadge: true, badgeType: 'trigger' })}
+                    ${renderField('', task['Görev Tipi'], 'ph-tag', { isBadge: true, badgeType: 'type' })}
+                    ${renderField('Onay Adımı', task['Aktif Onay Adımı'], 'ph-check-circle', { isStrong: false })}
+                    ${renderField('Son Teslim', task['Son Teslim Tarihi'], 'ph-calendar', { isDate: true })}
+                    ${renderField('Oluşturma', task['Oluşturulma Tarihi'], 'ph-clock', { isDate: true, isStrong: false })}
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div class="flex items-center gap-2 text-xs text-slate-500">
+                        <span class="flex items-center gap-1" title="Belgeler">
+                            <i class="ph ph-file text-xs"></i>${docsCount}
+                        </span>
+                        ${task['İş ID'] ? `<span class="font-mono text-slate-400">#${task['İş ID'].substring(0, 6)}</span>` : ''}
+                    </div>
+                    <div class="flex items-center -space-x-1.5">
+                        ${assigned.slice(0, 3).map(p => `
+                            <div class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-[10px] text-white font-medium border border-white" title="${p}">${p.charAt(0).toUpperCase()}</div>
+                        `).join('')}
+                        ${assigned.length > 3 ? `
+                            <div class="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center text-[10px] text-slate-600 font-medium border border-white" title="${assigned.length - 3} kişi daha">+${assigned.length - 3}</div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
+    // --- Ana Görünümler (Kanban, List, Grouping, Docs) ---
+    function renderKanban(filteredTasks) {
+        const statuses = [...new Set(allTasks.map(t => t['Mevcut Durum']).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
+        const wrapper = document.createElement('div');
+        wrapper.className = 'kanban-board max-w-none';
+
+        const renderColumn = (title, tasks, bgColor = 'bg-slate-50') => {
+            const col = document.createElement('div');
+            col.className = `kanban-column p-4 ${bgColor}`; // Padding eklendi
+            col.innerHTML = `
+                <div class="flex items-center justify-between mb-4 px-2">
+                    <h2 class="text-base font-semibold text-slate-700">${title}</h2>
+                    <span class="bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full text-xs font-medium">${tasks.length}</span>
+                </div>
+                <div class="kanban-tasks space-y-3">
+                    ${tasks.length > 0 ? tasks.map(createEnhancedTaskCard).join('') : '<div class="text-center py-10 text-sm text-slate-500"><i class="ph ph-stack text-3xl mb-2 block"></i>Görev yok</div>'}
+                </div>
+            `;
+            return col;
+        };
+
+        const tasksWithoutStatus = filteredTasks.filter(t => !t['Mevcut Durum']);
+        if (tasksWithoutStatus.length > 0) {
+            wrapper.appendChild(renderColumn('Durumu Belirsiz', tasksWithoutStatus));
+        }
+
+        statuses.forEach(status => {
+            const tasksInStatus = filteredTasks.filter(t => t['Mevcut Durum'] === status);
+             // Sadece içinde görev olan veya durumu belirsiz olmayan sütunları göster
+            if(tasksInStatus.length > 0) {
+                wrapper.appendChild(renderColumn(status, tasksInStatus, 'bg-white')); // Normal sütunlar beyaz
+            }
+        });
+
+        if (wrapper.children.length === 0) {
+            mainContent.innerHTML = `<div class="text-center py-16 text-slate-500"><i class="ph ph-trello-logo text-5xl mb-3 block"></i>${filteredTasks.length === 0 && allTasks.length > 0 ? 'Filtre sonucu görev bulunamadı.' : 'Gösterilecek görev yok.'}</div>`;
+        } else {
+            mainContent.appendChild(wrapper);
+        }
+    }
+
+    function renderEnhancedList(filteredTasks) {
+         // Liste görünümü önceki gibi kalabilir veya özet kartlarına benzer şekilde yeniden tasarlanabilir.
+         // Şimdilik önceki halini koruyalım, gerekirse güncelleriz.
+        mainContent.innerHTML = `
+            <div class="glass rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Başlık</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Sorumlu</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Durum</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Öncelik</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Son Teslim</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Belge</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            ${filteredTasks.map(task => {
+                                const docsCount = documents.filter(d => d['İş ID'] === task['İş ID']).length;
+                                const assigned = task.Sorumlular ? task.Sorumlular.split(',').map(p=>p.trim()).filter(Boolean) : [];
+                                return `
+                                    <tr class="hover:bg-slate-50 transition cursor-pointer" data-task-id="${task['İş ID']}">
+                                        <td class="px-4 py-2.5 whitespace-nowrap max-w-sm">
+                                            <div class="font-medium text-slate-700 mb-0.5 truncate">${task.Başlık || 'Başlık Yok'}</div>
+                                            <div class="text-xs text-slate-400">${task['İş ID']}</div>
+                                        </td>
+                                        <td class="px-4 py-2.5">
+                                             <div class="flex items-center -space-x-1.5">
+                                                ${assigned.slice(0, 3).map(p => `<div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-[10px] text-white font-medium border border-white" title="${p}">${p.charAt(0).toUpperCase()}</div>`).join('')}
+                                                ${assigned.length > 3 ? `<div class="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center text-[10px] text-slate-600 font-medium border border-white">+${assigned.length - 3}</div>` : ''}
+                                                ${assigned.length === 0 ? '<span class="text-xs text-slate-400">-</span>' : ''}
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2.5 whitespace-nowrap">${getStatusBadge(task['Mevcut Durum'], true)}</td>
+                                        <td class="px-4 py-2.5 whitespace-nowrap">${getPriorityBadge(task.Öncelik, true)}</td>
+                                        <td class="px-4 py-2.5 text-slate-600 whitespace-nowrap">${task['Son Teslim Tarihi'] || '-'}</td>
+                                        <td class="px-4 py-2.5 text-center">
+                                            <span class="text-xs text-slate-500">${docsCount}</span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                             ${filteredTasks.length === 0 ? `<tr><td colspan="6" class="text-center py-10 text-slate-500">Gösterilecek görev bulunamadı.</td></tr>` : ''}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderGroupingView(filteredTasks) {
+        mainContent.innerHTML = `
+            <div class="mb-6 flex justify-between items-center">
+                 <h1 class="view-title">Görev Grupları</h1>
+                 <div class="grouping-controls flex items-center gap-1 p-1 bg-slate-200 rounded-lg">
+                    <button id="group-by-person" class="px-3 py-1 text-sm font-medium rounded-md ${currentGroupingType === 'person' ? 'active' : 'text-slate-600 hover:bg-slate-300'}">
+                        <i class="ph ph-user mr-1"></i> Kişiye Göre
+                    </button>
+                    <button id="group-by-department" class="px-3 py-1 text-sm font-medium rounded-md ${currentGroupingType === 'department' ? 'active' : 'text-slate-600 hover:bg-slate-300'}">
+                        <i class="ph ph-buildings mr-1"></i> Departmana Göre
+                    </button>
+                 </div>
+            </div>
+            <div id="summary-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- Özet kartları buraya gelecek --></div>
+        `;
+
+        const groupKey = currentGroupingType === 'person' ? 'Sorumlular' : 'İlgili Departman(lar)';
+        const groups = {};
+
+        filteredTasks.forEach(task => {
+            const groupValues = task[groupKey] ? String(task[groupKey]).split(',').map(v => v.trim()).filter(Boolean) : ['Belirtilmemiş'];
+            groupValues.forEach(groupName => {
+                if (!groups[groupName]) {
+                    groups[groupName] = [];
+                }
+                groups[groupName].push(task);
+            });
+        });
+
+        const container = document.getElementById('summary-cards-container');
+        container.innerHTML = ''; // Önceki kartları temizle
+
+        Object.keys(groups).sort((a,b) => a.localeCompare(b,'tr')).forEach(groupName => {
+            container.innerHTML += createSummaryCard(groupName, groups[groupName], currentGroupingType);
+        });
+
+        if (Object.keys(groups).length === 0) {
+             container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500"><i class="ph ph-chart-pie-slice text-5xl mb-3 block"></i>Gruplanacak görev bulunamadı.</div>`;
+        }
+
+        // Grup türü değiştirme butonlarına event listener ekle
+        document.getElementById('group-by-person')?.addEventListener('click', () => {
+            currentGroupingType = 'person';
+            applyAndRender(); // Re-render with new grouping
+        });
+        document.getElementById('group-by-department')?.addEventListener('click', () => {
+            currentGroupingType = 'department';
+            applyAndRender(); // Re-render with new grouping
+        });
+    }
+
+    function createSummaryCard(groupName, tasksInGroup, groupType) {
+        const totalTasks = tasksInGroup.length;
+        const statusCounts = tasksInGroup.reduce((acc, task) => {
+            const status = task['Mevcut Durum'] || 'Belirsiz';
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {});
+        const priorityCounts = tasksInGroup.reduce((acc, task) => {
+            const priority = task['Öncelik'] || 'Belirsiz';
+            acc[priority] = (acc[priority] || 0) + 1;
+            return acc;
+        }, {});
+
+        const groupIcon = groupType === 'person' ? 'ph-user' : 'ph-buildings';
+
+         // Durumları sırala (örneğin: Yeni, Devam Ediyor, Tamamlandı, Belirsiz)
+        const sortedStatuses = Object.keys(statusCounts).sort((a, b) => {
+            const order = {'Yeni': 1, 'Devam Ediyor': 2, 'Beklemede': 3, 'Tamamlandı': 4, 'İptal': 5, 'Belirsiz': 6}; // Örnek sıralama
+            return (order[a] || 99) - (order[b] || 99);
+        });
+         // Öncelikleri sırala (Kritik, Yüksek, Normal, Düşük, Belirsiz)
+         const sortedPriorities = Object.keys(priorityCounts).sort((a, b) => {
+             const order = {'Kritik': 1, 'Yüksek': 2, 'Normal': 3, 'Düşük': 4, 'Belirsiz': 5};
+             return (order[a] || 99) - (order[b] || 99);
+         });
+
+
+        return `
+        <div class="summary-card glass rounded-lg p-4 transition duration-150 ease-in-out" data-group-name="${groupName}" data-group-type="${groupType}">
+            <div class="flex items-center gap-3 mb-3">
+                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center flex-shrink-0">
+                     <i class="ph ${groupIcon} text-lg text-white"></i>
+                 </div>
+                <h3 class="font-semibold text-slate-800 text-base line-clamp-1">${groupName}</h3>
+                <span class="ml-auto bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-medium">${totalTasks} Görev</span>
+            </div>
+
+            <div class="mb-3">
+                 <p class="text-xs font-medium text-slate-500 mb-1">Duruma Göre:</p>
+                 <div class="flex flex-wrap gap-x-3 gap-y-1">
+                     ${sortedStatuses.map(status => `
+                         <div class="status-count-item flex items-center gap-1.5 text-xs text-slate-600 rounded p-0.5" data-status-filter="${status}">
+                             ${getStatusBadge(status, true)}
+                             <span class="font-medium">${statusCounts[status]}</span>
+                         </div>
+                     `).join('')}
+                 </div>
+            </div>
+
+            <div>
+                 <p class="text-xs font-medium text-slate-500 mb-1">Önceliğe Göre:</p>
+                 <div class="flex flex-wrap gap-x-3 gap-y-1">
+                    ${sortedPriorities.map(priority => `
+                         <div class="priority-count-item flex items-center gap-1.5 text-xs text-slate-600 rounded p-0.5" data-priority-filter="${priority}">
+                              ${getPriorityBadge(priority, true)}
+                             <span class="font-medium">${priorityCounts[priority]}</span>
+                         </div>
+                    `).join('')}
+                 </div>
+            </div>
+        </div>
+        `;
+    }
+
+     function renderGroupDetailView(groupName, groupType, allFilteredTasks, specificFilter = null) {
+         mainContent.innerHTML = ''; // Önce temizle
+
+         const groupKey = groupType === 'person' ? 'Sorumlular' : 'İlgili Departman(lar)';
+         let tasksInGroup = allFilteredTasks.filter(task => {
+             const groupValues = task[groupKey] ? String(task[groupKey]).split(',').map(v => v.trim()).filter(Boolean) : ['Belirtilmemiş'];
+             return groupValues.includes(groupName);
+         });
+
+         let filterDescription = '';
+          // Eğer durum veya öncelik filtresi varsa uygula
+         if (specificFilter) {
+             if (specificFilter.type === 'status') {
+                 tasksInGroup = tasksInGroup.filter(task => (task['Mevcut Durum'] || 'Belirsiz') === specificFilter.value);
+                 filterDescription = ` - Durum: ${specificFilter.value}`;
+             } else if (specificFilter.type === 'priority') {
+                 tasksInGroup = tasksInGroup.filter(task => (task['Öncelik'] || 'Belirsiz') === specificFilter.value);
+                  filterDescription = ` - Öncelik: ${specificFilter.value}`;
+             }
+         }
+
+
+         const backButton = document.createElement('button');
+         backButton.className = 'back-button';
+         backButton.innerHTML = `<i class="ph ph-arrow-left"></i> Geri Dön`;
+         backButton.onclick = () => {
+             currentGroupDetail = null; // Detay görünümünden çık
+             applyAndRender();
+         };
+         mainContent.appendChild(backButton);
+
+
+         const title = document.createElement('h1');
+         title.className = 'view-title';
+         title.textContent = `${groupName} ${filterDescription} (${tasksInGroup.length} Görev)`;
+         mainContent.appendChild(title);
+
+         const tasksContainer = document.createElement('div');
+         tasksContainer.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'; // Kartlar için grid yapısı
+
+         if (tasksInGroup.length > 0) {
+             tasksContainer.innerHTML = tasksInGroup
+                 .sort((a,b) => (a.Başlık || '').localeCompare(b.Başlık || '', 'tr')) // Görevleri başlığa göre sırala
+                 .map(createEnhancedTaskCard).join('');
+         } else {
+             tasksContainer.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500"><i class="ph ph-list-checks text-5xl mb-3 block"></i>Bu grup için görev bulunamadı.</div>`;
+         }
+          mainContent.appendChild(tasksContainer);
+     }
+
+
+    function renderDocsView(filteredTasks) {
+         // Belge görünümü önceki gibi
+        const docsByTask = {};
+        const filteredTaskIds = new Set(filteredTasks.map(t => t['İş ID']));
+
+        documents.forEach(doc => {
+            if (doc['İş ID'] && filteredTaskIds.has(doc['İş ID'])) {
+                if (!docsByTask[doc['İş ID']]) {
+                    const task = allTasks.find(t => t['İş ID'] === doc['İş ID']);
+                    docsByTask[doc['İş ID']] = {
+                        title: task ? task.Başlık : `Görev ${doc['İş ID']}`,
+                        docs: []
+                    };
+                }
+                docsByTask[doc['İş ID']].docs.push(doc);
+            }
+        });
+
+        mainContent.innerHTML = `<h1 class="view-title">Görev Belgeleri</h1>`; // Başlık eklendi
+        const container = document.createElement('div');
+        container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'; // Boşluk azaltıldı
+
+        Object.keys(docsByTask).sort((a,b) => docsByTask[a].title.localeCompare(docsByTask[b].title, 'tr')).forEach(taskId => {
+            container.innerHTML += `
+                <div class="voyage-card p-4 flex flex-col">
+                    <h2 class="font-semibold text-slate-700 mb-3 text-sm flex-shrink-0">${docsByTask[taskId].title}</h2>
+                    <div class="space-y-2 flex-grow overflow-y-auto max-h-80 pr-1">
+                        ${docsByTask[taskId].docs
+                            .sort((a,b) => (a.Başlık || '').localeCompare(b.Başlık || '', 'tr'))
+                            .map(doc => `
+                            <a href="${doc.Link}" target="_blank" rel="noopener noreferrer"
+                               class="document-card bg-slate-50 p-2.5 block group rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-300 transition duration-150">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                        <i class="ph ph-file-arrow-down text-base text-blue-600"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-medium text-slate-700 text-xs truncate group-hover:text-blue-600 transition">${doc.Başlık || 'İsimsiz Belge'}</h4>
+                                        <p class="text-[11px] text-slate-500">${doc.Gönderen || '?'} - ${parseCustomDate(doc['Oluşturulma Tarihi'])?.toLocaleDateString('tr-TR') || '-'}</p>
+                                    </div>
+                                    <i class="ph ph-arrow-square-out text-slate-400 group-hover:text-blue-500 transition ml-auto text-sm"></i>
+                                </div>
+                            </a>
+                        `).join('')}
+                         ${docsByTask[taskId].docs.length === 0 ? `<p class="text-xs text-slate-500">Belge yok.</p>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        mainContent.appendChild(container);
+
+        if (Object.keys(docsByTask).length === 0) {
+             mainContent.innerHTML += `<div class="text-center py-16 text-slate-500"><i class="ph ph-files text-5xl mb-3 block"></i>Filtrelere uygun görevlere ait belge bulunamadı.</div>`;
+        }
+    }
+
+
+    // --- Modal Fonksiyonları ---
+    function openTaskModal(taskId) {
+        const task = allTasks.find(t => t['İş ID'] === taskId);
+        if (!task) return;
+
+        document.getElementById('modal-title').textContent = task.Başlık || 'Başlık Yok';
+        document.getElementById('modal-id').textContent = task['İş ID'];
+        document.getElementById('modal-priority-badge').innerHTML = getPriorityBadge(task.Öncelik);
+        document.getElementById('modal-status-badge').innerHTML = getStatusBadge(task['Mevcut Durum']);
+        document.getElementById('modal-trigger-type').innerHTML = task['Tetiklenme Türü'] ? `<span class="badge badge-trigger">${task['Tetiklenme Türü']}</span>` : '';
+
+
+        const detailsContainer = document.getElementById('modal-details');
+        detailsContainer.innerHTML = [
+            { label: 'Talep Eden', value: task['Talep Eden Makam'] },
+            { label: 'Kaynak', value: task['Kaynak / Harici Paydaş'] },
+            { label: 'Görev Tipi', value: task['Görev Tipi'] },
+            { label: 'Oluşturulma Tarihi', value: task['Oluşturulma Tarihi'] },
+            { label: 'Son Teslim Tarihi', value: task['Son Teslim Tarihi'] },
+        ]
+        .filter(item => item.value && String(item.value).trim()) // Sadece dolu olanları göster
+        .map(item => `<p><strong>${item.label}:</strong> ${item.value}</p>`)
+        .join('')
+        + (task['Görev İçeriği'] ? `<p class="mt-3"><strong>Açıklama:</strong><br>${task['Görev İçeriği']}</p>` : '<p class="mt-3 text-slate-500">Açıklama yok</p>');
+
+
+        const teamContainer = document.getElementById('modal-team');
+        const responsibles = task.Sorumlular ? task.Sorumlular.split(',').map(n => n.trim()).filter(Boolean) : [];
+        const relatedDepts = task['İlgili Departman(lar)'] ? task['İlgili Departman(lar)'].split(',').map(n => n.trim()).filter(Boolean) : [];
+
+        teamContainer.innerHTML = `
+             <div class="mb-2">
+                <strong>Sorumlular:</strong>
+                ${responsibles.length > 0 ? responsibles.map(p => `<span class="ml-1.5 inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-xs font-medium text-gray-700"><i class="ph ph-user text-xs"></i>${p}</span>`).join('') : '<span class="text-gray-500 ml-1"> Belirtilmemiş</span>'}
+            </div>
+             <div class="mb-2">
+                <strong>İlgili Departmanlar:</strong>
+                 ${relatedDepts.length > 0 ? relatedDepts.map(d => `<span class="ml-1.5 inline-flex items-center gap-1 bg-indigo-100 px-2 py-0.5 rounded text-xs font-medium text-indigo-700"><i class="ph ph-buildings text-xs"></i>${d}</span>`).join('') : '<span class="text-gray-500 ml-1"> Belirtilmemiş</span>'}
+             </div>
+              ${task['Aktif Onay Adımı'] ? `<p><strong>Aktif Onay Adımı:</strong> ${task['Aktif Onay Adımı']}</p>` : ''}
+             ${task['Onay Verecek Kişi'] ? `<p><strong>Onay Verecek Kişi:</strong> ${task['Onay Verecek Kişi']}</p>` : ''}
+        `;
+
+         switchModalTab('workflow', task); // Varsayılan olarak İş Akışını aç
+
+        taskModal.style.display = 'flex'; // Use style.display
+    }
+
+    function switchModalTab(tabId, task) {
+        if (!task) return;
+
+        modalTabs.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active', 'text-blue-600'));
+        modalTabs.querySelector(`[data-tab="${tabId}"]`)?.classList.add('active', 'text-blue-600');
+
+        tabContent.innerHTML = '<div class="flex justify-center items-center h-40"><div class="loading-spinner w-6 h-6"></div></div>'; // Smaller spinner
+
+        setTimeout(() => {
+            if (tabId === 'workflow') renderWorkflowTab(task);
+            else if (tabId === 'docs') renderDocumentsTab(task['İş ID']);
+            else tabContent.innerHTML = `<p class="text-slate-500 text-sm">İçerik bulunamadı.</p>`;
+        }, 50);
+    }
+
+    function formatWorkflow(workflowText) {
+        if (!workflowText || String(workflowText).trim() === '') {
+            return '<p class="text-slate-500 text-sm">İş akışı bilgisi yok.</p>';
+        }
+        const items = workflowText.split('- ').filter(item => item.trim() !== '');
+        if (items.length <= 1 && !workflowText.startsWith('- ')) {
+             return `<p class="text-sm text-slate-700">${workflowText}</p>`;
+        }
+        return `<ul class="list-disc list-inside space-y-1.5 text-sm text-slate-700">
+                   ${items.map(item => `<li>${item.trim()}</li>`).join('')}
+                </ul>`;
+    }
+
+    function renderWorkflowTab(task) {
+         tabContent.innerHTML = `
+            <h4 class="font-semibold text-base mb-3 text-slate-700">İş Akışı</h4>
+            ${formatWorkflow(task['İş Akışı'])}
+         `;
+    }
+
+    function renderDocumentsTab(taskId) {
+        const taskDocs = documents
+            .filter(d => d['İş ID'] === taskId)
+             .sort((a,b) => (a.Başlık || '').localeCompare(b.Başlık || '', 'tr'));
+
+        if (taskDocs.length === 0) {
+            tabContent.innerHTML = '<p class="text-slate-500 text-sm">Bu görev için belge bulunamadı.</p>';
+            return;
+        }
+
+        tabContent.innerHTML = `
+            <h4 class="font-semibold text-base mb-3 text-slate-700">Belgeler (${taskDocs.length})</h4>
+            <div class="space-y-2 max-h-[350px] overflow-y-auto pr-2">
+                ${taskDocs.map(doc => `
+                    <a href="${doc.Link}" target="_blank" rel="noopener noreferrer"
+                       class="document-card bg-slate-50 p-2.5 block group rounded-md border border-slate-200 hover:bg-blue-50 hover:border-blue-300 transition duration-150">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <i class="ph ph-file-arrow-down text-base text-blue-600"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-medium text-slate-700 text-xs truncate group-hover:text-blue-600 transition">${doc.Başlık || 'İsimsiz Belge'}</h4>
+                                <p class="text-[11px] text-slate-500">${doc.Gönderen || '?'} - ${parseCustomDate(doc['Oluşturulma Tarihi'])?.toLocaleDateString('tr-TR') || '-'}</p>
+                            </div>
+                            <i class="ph ph-arrow-square-out text-slate-400 group-hover:text-blue-500 transition ml-auto text-sm"></i>
+                        </div>
+                    </a>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // --- Event Listeners ---
+    function setupEventListeners() {
+        searchInput?.addEventListener('input', applyAndRender);
+        syncBtn?.addEventListener('click', async () => {
+            // Sync logic from previous versions...
+             syncBtn.disabled = true;
+             syncBtn.classList.add('opacity-50', 'cursor-not-allowed'); // Görsel geri bildirim
+             syncBtn.innerHTML = '<i class="ph-bold ph-spinner text-lg animate-spin"></i>';
+            try {
+                await fetchData(); // fetchData already calls applyAndRender
+                syncBtn.innerHTML = '<i class="ph-bold ph-check text-lg text-green-500"></i>';
+            } catch (error) {
+                syncBtn.innerHTML = '<i class="ph-bold ph-warning text-lg text-red-500"></i>';
+            } finally {
+                setTimeout(() => {
+                    syncBtn.innerHTML = '<i class="ph-bold ph-arrows-clockwise text-lg"></i>';
+                    syncBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    syncBtn.disabled = false;
+                }, 2000);
+            }
+        });
+
+        // Filter Menu
+        document.getElementById('open-filter-btn')?.addEventListener('click', openFilterMenu);
+        document.getElementById('close-filter-btn')?.addEventListener('click', closeFilterMenu);
+        filterMenuBackdrop?.addEventListener('click', closeFilterMenu);
+        document.getElementById('reset-filters-btn')?.addEventListener('click', () => {
+            if(filterMenu) { // Check if filterMenu exists
+                filterMenu.querySelectorAll('select').forEach(s => s.value = '');
+                filterMenu.querySelectorAll('input').forEach(i => i.value = '');
+            }
+            applyAndRender();
+        });
+        document.getElementById('apply-filters-btn')?.addEventListener('click', () => {
+            applyAndRender();
+            closeFilterMenu();
+        });
+
+        // View Buttons
+        document.getElementById('view-toggle-kanban')?.addEventListener('click', () => { currentView = 'kanban'; currentGroupDetail = null; applyAndRender(); });
+        document.getElementById('view-toggle-list')?.addEventListener('click', () => { currentView = 'list'; currentGroupDetail = null; applyAndRender(); });
+        document.getElementById('view-grouping')?.addEventListener('click', () => { currentView = 'grouping'; currentGroupDetail = null; applyAndRender(); });
+        document.getElementById('view-docs')?.addEventListener('click', () => { currentView = 'docs'; currentGroupDetail = null; applyAndRender(); });
+
+
+        // Modal
+        closeModalBtn?.addEventListener('click', () => taskModal.style.display = 'none');
+        taskModal?.addEventListener('click', (e) => { if (e.target === taskModal) taskModal.style.display = 'none'; });
+        modalTabs?.addEventListener('click', (e) => {
+            const tabButton = e.target.closest('.tab-btn');
+            if (tabButton && tabButton.dataset.tab) {
+                const taskId = document.getElementById('modal-id')?.textContent;
+                const task = allTasks.find(t => t['İş ID'] === taskId);
+                if (task) switchModalTab(tabButton.dataset.tab, task);
+            }
+        });
+
+        // Main Content Delegation for Clicks
+        mainContent?.addEventListener('click', (e) => {
+            const taskCard = e.target.closest('[data-task-id]');
+            const summaryCard = e.target.closest('.summary-card');
+             const statusFilter = e.target.closest('.status-count-item');
+             const priorityFilter = e.target.closest('.priority-count-item');
+
+
+            if (taskCard && taskCard.dataset.taskId) {
+                openTaskModal(taskCard.dataset.taskId);
+            } else if (summaryCard && summaryCard.dataset.groupName && summaryCard.dataset.groupType) {
+                 // Özet kartına tıklandı -> Detay görünümünü aç
+                currentGroupDetail = {
+                    type: summaryCard.dataset.groupType,
+                    name: summaryCard.dataset.groupName,
+                    filter: null // Başlangıçta filtre yok
+                };
+                applyAndRender(); // Detay görünümünü render et
+            } else if (statusFilter && statusFilter.dataset.statusFilter && currentGroupDetail) {
+                 // Durum filtresine tıklandı -> Detay görünümünü filtrele
+                 currentGroupDetail.filter = { type: 'status', value: statusFilter.dataset.statusFilter };
+                 applyAndRender();
+            } else if (priorityFilter && priorityFilter.dataset.priorityFilter && currentGroupDetail) {
+                // Öncelik filtresine tıklandı -> Detay görünümünü filtrele
+                currentGroupDetail.filter = { type: 'priority', value: priorityFilter.dataset.priorityFilter };
+                applyAndRender();
+            }
+        });
+    }
+
+    // --- Yardımcı UI Fonksiyonları ---
+    function updateSyncIndicator() {
+        if (lastSyncTime && syncTimeSpan && lastSyncDiv) {
+            syncTimeSpan.textContent = `Son Eşitleme: ${lastSyncTime.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+            lastSyncDiv.classList.remove('hidden');
+        }
+    }
+
+    function openFilterMenu() {
+        if (filterMenu && filterMenuBackdrop) {
+            filterMenuBackdrop.classList.remove('hidden');
+            filterMenu.classList.add('open');
+            setTimeout(() => filterMenuBackdrop.classList.add('opacity-100'), 10);
+        }
+    }
+
+    function closeFilterMenu() {
+        if (filterMenu && filterMenuBackdrop) {
+            filterMenuBackdrop.classList.remove('opacity-100');
+            filterMenu.classList.remove('open');
+            setTimeout(() => filterMenuBackdrop.classList.add('hidden'), 300);
+        }
+    }
+
+    function getViewButtonId(viewName) {
+         switch (viewName) {
+             case 'kanban': return 'view-toggle-kanban';
+             case 'list': return 'view-toggle-list';
+             case 'grouping': return 'view-grouping';
+             case 'docs': return 'view-docs';
+             default: return '';
+         }
+     }
+
+     function setActiveViewButton(activeButtonId) {
+         ['view-toggle-kanban', 'view-toggle-list', 'view-grouping', 'view-docs'].forEach(id => {
+             const btn = document.getElementById(id);
+             if (btn) {
+                 btn.classList.remove('bg-blue-100', 'text-blue-700', 'bg-cyan-500', 'text-white'); // Aktif stilleri kaldır
+                 btn.classList.add('text-slate-600', 'hover:bg-slate-100'); // Pasif stil
+             }
+         });
+         const activeButton = document.getElementById(activeButtonId);
+         if (activeButton) {
+             activeButton.classList.remove('text-slate-600', 'hover:bg-slate-100');
+             activeButton.classList.add('bg-blue-100', 'text-blue-700'); // Yeni aktif stil
+         }
+     }
+
+
+    // --- Başlangıç ---
+    setupEventListeners();
+    fetchData(); // İlk veri yükleme ve render
+
+    // Periyodik yenileme (isteğe bağlı)
+    // setInterval(fetchData, 5 * 60 * 1000);
+
+});
+</script>
+</body>
 </html>
+
